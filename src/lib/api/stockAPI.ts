@@ -1,7 +1,6 @@
 import axios from 'axios';
 
 const BASE_URL = 'https://www.alphavantage.co/query';
-const API_KEY = 'YOUR_API_KEY'; // Replace with your actual API key
 
 export interface StockOverview {
   Symbol: string;
@@ -48,8 +47,12 @@ export interface TimeSeriesData {
   adjClose?: number;
 }
 
-const validateAPIKey = (apiKey: string): boolean => {
-  return apiKey.length > 0;
+const getApiKey = (): string => {
+  const apiKey = localStorage.getItem('alphavantage_api_key');
+  if (!apiKey) {
+    throw new Error('API key not found');
+  }
+  return apiKey;
 };
 
 const processTimeSeriesResponse = (data: any): TimeSeriesData[] => {
@@ -103,21 +106,22 @@ export const getStockOverview = async (symbol: string): Promise<StockOverview> =
     throw new Error('Symbol is required');
   }
 
-  if (!validateAPIKey(API_KEY)) {
-    throw new Error('Valid API key required');
-  }
-
   try {
+    const apiKey = getApiKey();
     const response = await axios.get(BASE_URL, {
       params: {
         function: 'OVERVIEW',
         symbol,
-        apikey: API_KEY
+        apikey: apiKey
       }
     });
 
     if (!response.data || Object.keys(response.data).length === 0) {
       throw new Error('No data returned from API');
+    }
+
+    if (response.data.Note && response.data.Note.includes('API call frequency')) {
+      throw new Error('API rate limit exceeded. Please try again later.');
     }
 
     if (!response.data.Symbol || !response.data.Name) {
@@ -143,19 +147,20 @@ export const getTimeSeriesDaily = async (symbol: string): Promise<TimeSeriesData
     throw new Error('Symbol is required');
   }
 
-  if (!validateAPIKey(API_KEY)) {
-    throw new Error('Valid API key required');
-  }
-
   try {
+    const apiKey = getApiKey();
     const response = await axios.get(BASE_URL, {
       params: {
         function: 'TIME_SERIES_DAILY_ADJUSTED',
         symbol,
         outputsize: 'compact',
-        apikey: API_KEY
+        apikey: apiKey
       }
     });
+
+    if (response.data.Note && response.data.Note.includes('API call frequency')) {
+      throw new Error('API rate limit exceeded. Please try again later.');
+    }
 
     return processTimeSeriesResponse(response.data);
   } catch (error) {

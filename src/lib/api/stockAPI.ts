@@ -60,45 +60,32 @@ const processTimeSeriesResponse = (data: any): TimeSeriesData[] => {
     throw new Error('Invalid API response format');
   }
 
-  if (data.Information && data.Information.includes('demo')) {
-    throw new Error('Invalid API key. Please use a valid Alpha Vantage API key');
+  if (data?.Note?.includes('demo')) {
+    throw new Error('Please use a valid Alpha Vantage API key');
+  }
+
+  if (data?.Note?.includes('API call frequency')) {
+    throw new Error('API rate limit exceeded. Please try again later.');
   }
 
   if (data.Error) {
     throw new Error(`API Error: ${data.Error}`);
   }
 
-  if (!data['Time Series (Daily)']) {
+  const timeSeries = data['Time Series (Daily)'];
+  if (!timeSeries || Object.keys(timeSeries).length === 0) {
     throw new Error('No time series data available');
   }
 
-  const timeSeries = data['Time Series (Daily)'];
-  return Object.entries(timeSeries).map(([date, values]: [string, any]) => {
-    if (!values || typeof values !== 'object') {
-      throw new Error(`Invalid data format for date ${date}`);
-    }
-
-    const open = Number(values['1. open']);
-    const high = Number(values['2. high']);
-    const low = Number(values['3. low']);
-    const close = Number(values['4. close']);
-    const volume = Number(values['5. volume']);
-    const adjClose = Number(values['5. adjusted close'] || values['4. close']);
-
-    if ([open, high, low, close, volume, adjClose].some(isNaN)) {
-      throw new Error(`Invalid numeric data for date ${date}`);
-    }
-
-    return {
-      date,
-      open,
-      high,
-      low,
-      close,
-      volume,
-      adjClose
-    };
-  });
+  return Object.entries(timeSeries).map(([date, values]: [string, any]) => ({
+    date,
+    open: Number(values['1. open']),
+    high: Number(values['2. high']),
+    low: Number(values['3. low']),
+    close: Number(values['4. close']),
+    volume: Number(values['5. volume']),
+    adjClose: Number(values['5. adjusted close'] || values['4. close'])
+  }));
 };
 
 export const getStockOverview = async (symbol: string): Promise<StockOverview> => {
@@ -120,8 +107,13 @@ export const getStockOverview = async (symbol: string): Promise<StockOverview> =
       throw new Error('No data returned from API');
     }
 
-    if (response.data.Note && response.data.Note.includes('API call frequency')) {
-      throw new Error('API rate limit exceeded. Please try again later.');
+    if (response.data.Note) {
+      if (response.data.Note.includes('demo')) {
+        throw new Error('Please use a valid Alpha Vantage API key');
+      }
+      if (response.data.Note.includes('API call frequency')) {
+        throw new Error('API rate limit exceeded. Please try again later.');
+      }
     }
 
     if (!response.data.Symbol || !response.data.Name) {
@@ -149,6 +141,8 @@ export const getTimeSeriesDaily = async (symbol: string): Promise<TimeSeriesData
 
   try {
     const apiKey = getApiKey();
+    console.log('Fetching time series data for symbol:', symbol);
+    
     const response = await axios.get(BASE_URL, {
       params: {
         function: 'TIME_SERIES_DAILY_ADJUSTED',
@@ -158,12 +152,11 @@ export const getTimeSeriesDaily = async (symbol: string): Promise<TimeSeriesData
       }
     });
 
-    if (response.data.Note && response.data.Note.includes('API call frequency')) {
-      throw new Error('API rate limit exceeded. Please try again later.');
-    }
-
+    console.log('API Response:', JSON.stringify(response.data, null, 2));
+    
     return processTimeSeriesResponse(response.data);
   } catch (error) {
+    console.error('Error fetching time series data:', error);
     if (axios.isAxiosError(error)) {
       if (error.response?.status === 401) {
         throw new Error('Invalid API key');
@@ -176,7 +169,7 @@ export const getTimeSeriesDaily = async (symbol: string): Promise<TimeSeriesData
   }
 };
 
-export const calculateTechnicalIndicators = (data: TimeSeriesData[]) => {
+const calculateTechnicalIndicators = (data: TimeSeriesData[]) => {
   if (!data || data.length === 0) return null;
 
   const prices = data.map(d => d.close);

@@ -9,6 +9,7 @@ import KeyMetrics from '@/components/StockAnalysis/KeyMetrics';
 import CompanyOverview from '@/components/StockAnalysis/CompanyOverview';
 import TechnicalIndicators from '@/components/StockAnalysis/TechnicalIndicators';
 import NewsAnalysis from '@/components/StockAnalysis/NewsAnalysis';
+import PortfolioManagement from '@/components/StockAnalysis/PortfolioManagement';
 import { getStockOverview, getTimeSeriesDaily } from '@/lib/api/stockAPI';
 import { toast } from '@/components/ui/use-toast';
 
@@ -170,12 +171,7 @@ const Index = () => {
                   </TabsContent>
 
                   <TabsContent value="portfolio" className="mt-6">
-                    {overview && (
-                      <div className="bg-white/80 backdrop-blur-sm rounded-lg border border-gray-100 p-6">
-                        <h2 className="text-xl font-semibold mb-4">Portfolio Analysis</h2>
-                        <p className="text-gray-600">Portfolio analysis features coming soon...</p>
-                      </div>
-                    )}
+                    {overview && <PortfolioManagement data={overview} />}
                   </TabsContent>
 
                   <TabsContent value="metrics" className="mt-6">

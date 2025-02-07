@@ -1,7 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import SearchBar from '@/components/StockAnalysis/SearchBar';
 import StockChart from '@/components/StockAnalysis/StockChart';
 import KeyMetrics from '@/components/StockAnalysis/KeyMetrics';
@@ -12,11 +14,32 @@ import { toast } from '@/components/ui/use-toast';
 
 const Index = () => {
   const [symbol, setSymbol] = useState<string>('');
+  const [apiKey, setApiKey] = useState<string>('');
+  const [isKeyValid, setIsKeyValid] = useState<boolean>(false);
+
+  useEffect(() => {
+    const storedKey = localStorage.getItem('alphavantage_api_key');
+    if (storedKey) {
+      setApiKey(storedKey);
+      setIsKeyValid(true);
+    }
+  }, []);
+
+  const handleApiKeySubmit = () => {
+    if (apiKey.trim()) {
+      localStorage.setItem('alphavantage_api_key', apiKey.trim());
+      setIsKeyValid(true);
+      toast({
+        title: "Success",
+        description: "API key has been saved",
+      });
+    }
+  };
 
   const { data: overview, isLoading: overviewLoading, error: overviewError } = useQuery({
     queryKey: ['stockOverview', symbol],
     queryFn: () => getStockOverview(symbol),
-    enabled: !!symbol,
+    enabled: !!symbol && isKeyValid,
     retry: false,
     meta: {
       errorMessage: "Failed to fetch company overview. Please try again.",
@@ -26,7 +49,7 @@ const Index = () => {
   const { data: timeSeriesData, isLoading: timeSeriesLoading, error: timeSeriesError } = useQuery({
     queryKey: ['timeSeries', symbol],
     queryFn: () => getTimeSeriesDaily(symbol),
-    enabled: !!symbol,
+    enabled: !!symbol && isKeyValid,
     retry: false,
     meta: {
       errorMessage: "Failed to fetch price data. Please try again.",
@@ -75,6 +98,32 @@ const Index = () => {
     dividend: parseFloat(overview.DividendYield) / 100,
     beta: parseFloat(overview.Beta),
   } : undefined;
+
+  if (!isKeyValid) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full space-y-4">
+          <h2 className="text-2xl font-bold text-center">Alpha Vantage API Key Required</h2>
+          <p className="text-gray-600 text-center">Please enter your Alpha Vantage API key to continue</p>
+          <div className="space-y-4">
+            <Input
+              type="password"
+              placeholder="Enter your API key"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+            />
+            <Button 
+              className="w-full"
+              onClick={handleApiKeySubmit}
+              disabled={!apiKey.trim()}
+            >
+              Save API Key
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">

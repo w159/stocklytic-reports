@@ -9,6 +9,7 @@ import StockChart from '@/components/StockAnalysis/StockChart';
 import KeyMetrics from '@/components/StockAnalysis/KeyMetrics';
 import CompanyOverview from '@/components/StockAnalysis/CompanyOverview';
 import TechnicalIndicators from '@/components/StockAnalysis/TechnicalIndicators';
+import NewsAnalysis from '@/components/StockAnalysis/NewsAnalysis';
 import { getStockOverview, getTimeSeriesDaily } from '@/lib/api/stockAPI';
 import { toast } from '@/components/ui/use-toast';
 
@@ -189,7 +190,7 @@ const Index = () => {
                   <TabsContent value="news" className="mt-6">
                     <div className="bg-white/80 backdrop-blur-sm rounded-lg border border-gray-100 p-6">
                       <h2 className="text-xl font-semibold mb-4">News & Analysis</h2>
-                      <p className="text-gray-600">News and analysis features coming soon...</p>
+                      <NewsAnalysis />
                     </div>
                   </TabsContent>
                 </Tabs>

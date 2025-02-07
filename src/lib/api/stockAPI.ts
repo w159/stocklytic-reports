@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 
 const BASE_URL = 'https://www.alphavantage.co/query';
@@ -46,6 +45,23 @@ export interface TimeSeriesData {
   close: number;
   volume: number;
   adjClose?: number;
+}
+
+export interface NewsItem {
+  title: string;
+  url: string;
+  time_published: string;
+  authors: string[];
+  summary: string;
+  source: string;
+  category_within_source: string;
+  source_domain: string;
+  sentiment_score?: number;
+  ticker_sentiment?: {
+    ticker: string;
+    relevance_score: string;
+    ticker_sentiment_score: string;
+  }[];
 }
 
 const getApiKey = (): string => {
@@ -270,4 +286,47 @@ const calculateEMA = (data: number[], period: number): number[] => {
   }
 
   return ema;
+};
+
+export const getNewsData = async (symbol: string): Promise<NewsItem[]> => {
+  if (!symbol) {
+    throw new Error('Symbol is required');
+  }
+
+  try {
+    const apiKey = getApiKey();
+    const response = await axios.get(BASE_URL, {
+      params: {
+        function: 'NEWS_SENTIMENT',
+        tickers: symbol,
+        apikey: apiKey,
+        sort: 'RELEVANCE',
+        limit: '9'
+      }
+    });
+
+    if (response.data?.Note?.includes('demo')) {
+      throw new Error('Please use a valid Alpha Vantage API key');
+    }
+
+    if (response.data?.Note?.includes('API call frequency')) {
+      throw new Error('API rate limit exceeded. Please try again later.');
+    }
+
+    if (!response.data.feed || !Array.isArray(response.data.feed)) {
+      throw new Error('Invalid news data format');
+    }
+
+    return response.data.feed;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      if (error.response?.status === 401) {
+        throw new Error('Invalid API key');
+      }
+      if (error.response?.status === 429) {
+        throw new Error('API rate limit exceeded');
+      }
+    }
+    throw error;
+  }
 };

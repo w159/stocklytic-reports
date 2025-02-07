@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -190,7 +189,7 @@ const Index = () => {
                   <TabsContent value="news" className="mt-6">
                     <div className="bg-white/80 backdrop-blur-sm rounded-lg border border-gray-100 p-6">
                       <h2 className="text-xl font-semibold mb-4">News & Analysis</h2>
-                      <NewsAnalysis />
+                      {symbol && <NewsAnalysis symbol={symbol} />}
                     </div>
                   </TabsContent>
                 </Tabs>

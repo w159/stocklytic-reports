@@ -69,23 +69,29 @@ const processTimeSeriesResponse = (data: any): TimeSeriesData[] => {
       throw new Error(`Invalid data format for date ${date}`);
     }
 
-    const processedData = {
-      date,
-      open: parseFloat(values['1. open'] || 0),
-      high: parseFloat(values['2. high'] || 0),
-      low: parseFloat(values['3. low'] || 0),
-      close: parseFloat(values['4. close'] || 0),
-      volume: parseFloat(values['5. volume'] || 0),
-      adjClose: parseFloat(values['5. adjusted close'] || values['4. close'] || 0)
-    };
+    // Convert string values to numbers before processing
+    const open = parseFloat(values['1. open'] || '0');
+    const high = parseFloat(values['2. high'] || '0');
+    const low = parseFloat(values['3. low'] || '0');
+    const close = parseFloat(values['4. close'] || '0');
+    const volume = parseFloat(values['5. volume'] || '0');
+    const adjClose = parseFloat(values['5. adjusted close'] || values['4. close'] || '0');
 
-    // Validate processed data
-    if (Object.values(processedData).some(val => isNaN(val) && val !== processedData.date)) {
+    // Validate numeric values
+    if ([open, high, low, close, volume, adjClose].some(isNaN)) {
       console.error('Invalid numeric data for date:', date, values);
       throw new Error(`Invalid numeric data for date ${date}`);
     }
 
-    return processedData;
+    return {
+      date,
+      open,
+      high,
+      low,
+      close,
+      volume,
+      adjClose
+    };
   });
 };
 
@@ -188,8 +194,11 @@ const calculateRSI = (prices: number[], period: number = 14): number[] => {
   let gains = 0;
   let losses = 0;
 
-  for (let i = 1; i < prices.length; i++) {
-    const difference = prices[i] - prices[i - 1];
+  // Ensure we're working with numerical values
+  const numericPrices = prices.map(price => typeof price === 'string' ? parseFloat(price) : price);
+
+  for (let i = 1; i < numericPrices.length; i++) {
+    const difference = numericPrices[i] - numericPrices[i - 1];
     if (difference >= 0) {
       gains += difference;
     } else {
@@ -202,7 +211,7 @@ const calculateRSI = (prices: number[], period: number = 14): number[] => {
       const rs = avgGain / avgLoss;
       rsi.push(100 - (100 / (1 + rs)));
 
-      const oldDiff = prices[i - period + 1] - prices[i - period];
+      const oldDiff = numericPrices[i - period + 1] - numericPrices[i - period];
       if (oldDiff >= 0) {
         gains -= oldDiff;
       } else {
@@ -231,13 +240,16 @@ const calculateEMA = (data: number[], period: number): number[] => {
   const ema = [];
   const multiplier = 2 / (period + 1);
 
+  // Convert any string values to numbers
+  const numericData = data.map(value => typeof value === 'string' ? parseFloat(value) : value);
+
   // Start with SMA
-  let smaFirst = data.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  let smaFirst = numericData.slice(0, period).reduce((a, b) => a + b, 0) / period;
   ema.push(smaFirst);
 
   // Calculate EMA
-  for (let i = period; i < data.length; i++) {
-    ema.push((data[i] - ema[ema.length - 1]) * multiplier + ema[ema.length - 1]);
+  for (let i = period; i < numericData.length; i++) {
+    ema.push((numericData[i] - ema[ema.length - 1]) * multiplier + ema[ema.length - 1]);
   }
 
   return ema;

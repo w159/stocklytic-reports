@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import SearchBar from '@/components/StockAnalysis/SearchBar';
 import StockChart from '@/components/StockAnalysis/StockChart';
 import KeyMetrics from '@/components/StockAnalysis/KeyMetrics';
@@ -67,9 +68,9 @@ const Index = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="space-y-8">
           <div className="text-center space-y-4">
-            <h1 className="text-4xl font-bold text-gray-900">Stock Analysis Dashboard</h1>
+            <h1 className="text-4xl font-bold text-gray-900">Comprehensive Stock Analysis Dashboard</h1>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              Enter a stock symbol to view detailed financial analysis and real-time market data
+              Complete financial analysis and market data for informed investment decisions
             </p>
           </div>
 
@@ -80,20 +81,56 @@ const Index = () => {
               {isLoading ? (
                 <div className="text-center py-8">
                   <div className="animate-spin h-8 w-8 border-4 border-gray-900 border-t-transparent rounded-full mx-auto"></div>
-                  <p className="mt-4 text-gray-600">Loading data...</p>
+                  <p className="mt-4 text-gray-600">Loading comprehensive analysis...</p>
                 </div>
               ) : (
-                <>
-                  {overview && <CompanyOverview data={overview} />}
-                  {metrics && <KeyMetrics metrics={metrics} />}
-                  {timeSeriesData && <TechnicalIndicators data={timeSeriesData} />}
-                  {chartData && (
+                <Tabs defaultValue="overview" className="w-full">
+                  <TabsList className="grid w-full grid-cols-6">
+                    <TabsTrigger value="overview">Overview</TabsTrigger>
+                    <TabsTrigger value="price">Price Performance</TabsTrigger>
+                    <TabsTrigger value="portfolio">Portfolio & Management</TabsTrigger>
+                    <TabsTrigger value="metrics">Key Metrics</TabsTrigger>
+                    <TabsTrigger value="technical">Technical Analysis</TabsTrigger>
+                    <TabsTrigger value="news">News & Reviews</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="overview" className="mt-6">
+                    {overview && <CompanyOverview data={overview} />}
+                  </TabsContent>
+
+                  <TabsContent value="price" className="mt-6">
+                    {chartData && (
+                      <div className="bg-white/80 backdrop-blur-sm rounded-lg border border-gray-100 p-6">
+                        <h2 className="text-xl font-semibold mb-4">Price History</h2>
+                        <StockChart data={chartData} />
+                      </div>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="portfolio" className="mt-6">
+                    {overview && (
+                      <div className="bg-white/80 backdrop-blur-sm rounded-lg border border-gray-100 p-6">
+                        <h2 className="text-xl font-semibold mb-4">Portfolio Analysis</h2>
+                        {/* Add portfolio management content here */}
+                      </div>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="metrics" className="mt-6">
+                    {metrics && <KeyMetrics metrics={metrics} />}
+                  </TabsContent>
+
+                  <TabsContent value="technical" className="mt-6">
+                    {timeSeriesData && <TechnicalIndicators data={timeSeriesData} />}
+                  </TabsContent>
+
+                  <TabsContent value="news" className="mt-6">
                     <div className="bg-white/80 backdrop-blur-sm rounded-lg border border-gray-100 p-6">
-                      <h2 className="text-xl font-semibold mb-4">Price History</h2>
-                      <StockChart data={chartData} />
+                      <h2 className="text-xl font-semibold mb-4">News & Analysis</h2>
+                      {/* Add news and reviews content here */}
                     </div>
-                  )}
-                </>
+                  </TabsContent>
+                </Tabs>
               )}
             </div>
           )}

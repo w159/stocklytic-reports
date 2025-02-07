@@ -13,41 +13,54 @@ import { toast } from '@/components/ui/use-toast';
 const Index = () => {
   const [symbol, setSymbol] = useState<string>('');
 
-  const { data: overview, isLoading: overviewLoading } = useQuery({
+  const { data: overview, isLoading: overviewLoading, error: overviewError } = useQuery({
     queryKey: ['stockOverview', symbol],
     queryFn: () => getStockOverview(symbol),
     enabled: !!symbol,
     retry: false,
     meta: {
-      onError: () => {
-        toast({
-          title: "Error",
-          description: "Failed to fetch company overview. Please try again.",
-          variant: "destructive"
-        });
-      }
+      errorMessage: "Failed to fetch company overview. Please try again.",
     }
   });
 
-  const { data: timeSeriesData, isLoading: timeSeriesLoading } = useQuery({
+  const { data: timeSeriesData, isLoading: timeSeriesLoading, error: timeSeriesError } = useQuery({
     queryKey: ['timeSeries', symbol],
     queryFn: () => getTimeSeriesDaily(symbol),
     enabled: !!symbol,
     retry: false,
     meta: {
-      onError: () => {
-        toast({
-          title: "Error",
-          description: "Failed to fetch price data. Please try again.",
-          variant: "destructive"
-        });
-      }
+      errorMessage: "Failed to fetch price data. Please try again.",
     }
   });
 
   const handleSearch = async (newSymbol: string) => {
+    if (!newSymbol.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid stock symbol",
+        variant: "destructive"
+      });
+      return;
+    }
     setSymbol(newSymbol.toUpperCase());
   };
+
+  React.useEffect(() => {
+    if (overviewError) {
+      toast({
+        title: "Error",
+        description: overviewError instanceof Error ? overviewError.message : "Failed to fetch company overview",
+        variant: "destructive"
+      });
+    }
+    if (timeSeriesError) {
+      toast({
+        title: "Error",
+        description: timeSeriesError instanceof Error ? timeSeriesError.message : "Failed to fetch price data",
+        variant: "destructive"
+      });
+    }
+  }, [overviewError, timeSeriesError]);
 
   const isLoading = overviewLoading || timeSeriesLoading;
   const chartData = timeSeriesData ? {
@@ -111,7 +124,7 @@ const Index = () => {
                     {overview && (
                       <div className="bg-white/80 backdrop-blur-sm rounded-lg border border-gray-100 p-6">
                         <h2 className="text-xl font-semibold mb-4">Portfolio Analysis</h2>
-                        {/* Add portfolio management content here */}
+                        <p className="text-gray-600">Portfolio analysis features coming soon...</p>
                       </div>
                     )}
                   </TabsContent>
@@ -127,7 +140,7 @@ const Index = () => {
                   <TabsContent value="news" className="mt-6">
                     <div className="bg-white/80 backdrop-blur-sm rounded-lg border border-gray-100 p-6">
                       <h2 className="text-xl font-semibold mb-4">News & Analysis</h2>
-                      {/* Add news and reviews content here */}
+                      <p className="text-gray-600">News and analysis features coming soon...</p>
                     </div>
                   </TabsContent>
                 </Tabs>

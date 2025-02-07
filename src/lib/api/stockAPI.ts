@@ -49,36 +49,51 @@ export interface TimeSeriesData {
   adjClose?: number;
 }
 
-export interface FinancialMetrics {
-  eps: number;
-  revenue: number;
-  profitMargin: number;
-  operatingMargin: number;
-  debtToEquity: number;
-  currentRatio: number;
-  quickRatio: number;
-  returnOnEquity: number;
-  returnOnAssets: number;
-}
-
 const processTimeSeriesResponse = (data: any): TimeSeriesData[] => {
   if (!data || !data['Time Series (Daily)']) {
+    console.error('Invalid time series data structure:', data);
     throw new Error('Invalid time series data structure');
   }
 
   const timeSeries = data['Time Series (Daily)'];
-  return Object.entries(timeSeries).map(([date, values]: [string, any]) => ({
-    date,
-    open: parseFloat(values['1. open']),
-    high: parseFloat(values['2. high']),
-    low: parseFloat(values['3. low']),
-    close: parseFloat(values['4. close']),
-    volume: parseFloat(values['5. volume']),
-    adjClose: parseFloat(values['5. adjusted close'] || values['4. close'])
-  }));
+  const timeSeriesEntries = Object.entries(timeSeries);
+  
+  if (!timeSeriesEntries.length) {
+    console.error('Empty time series data');
+    throw new Error('Empty time series data');
+  }
+
+  return timeSeriesEntries.map(([date, values]: [string, any]) => {
+    if (!values || typeof values !== 'object') {
+      console.error('Invalid values for date:', date, values);
+      throw new Error(`Invalid data format for date ${date}`);
+    }
+
+    const processedData = {
+      date,
+      open: parseFloat(values['1. open'] || 0),
+      high: parseFloat(values['2. high'] || 0),
+      low: parseFloat(values['3. low'] || 0),
+      close: parseFloat(values['4. close'] || 0),
+      volume: parseFloat(values['5. volume'] || 0),
+      adjClose: parseFloat(values['5. adjusted close'] || values['4. close'] || 0)
+    };
+
+    // Validate processed data
+    if (Object.values(processedData).some(val => isNaN(val) && val !== processedData.date)) {
+      console.error('Invalid numeric data for date:', date, values);
+      throw new Error(`Invalid numeric data for date ${date}`);
+    }
+
+    return processedData;
+  });
 };
 
 export const getStockOverview = async (symbol: string): Promise<StockOverview> => {
+  if (!symbol) {
+    throw new Error('Symbol is required');
+  }
+
   try {
     const response = await axios.get(BASE_URL, {
       params: {
@@ -89,6 +104,7 @@ export const getStockOverview = async (symbol: string): Promise<StockOverview> =
     });
 
     if (!response.data || Object.keys(response.data).length === 0) {
+      console.error('Empty response from API for symbol:', symbol);
       throw new Error('No data returned from API');
     }
 
@@ -100,6 +116,10 @@ export const getStockOverview = async (symbol: string): Promise<StockOverview> =
 };
 
 export const getTimeSeriesDaily = async (symbol: string): Promise<TimeSeriesData[]> => {
+  if (!symbol) {
+    throw new Error('Symbol is required');
+  }
+
   try {
     const response = await axios.get(BASE_URL, {
       params: {
@@ -110,8 +130,9 @@ export const getTimeSeriesDaily = async (symbol: string): Promise<TimeSeriesData
       }
     });
 
-    if (!response.data || !response.data['Time Series (Daily)']) {
-      throw new Error('Invalid time series data structure');
+    if (!response.data) {
+      console.error('Empty response from API for symbol:', symbol);
+      throw new Error('No data returned from API');
     }
 
     return processTimeSeriesResponse(response.data);

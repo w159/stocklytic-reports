@@ -17,12 +17,14 @@ const Index = () => {
     queryFn: () => getStockOverview(symbol),
     enabled: !!symbol,
     retry: false,
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to fetch company overview. Please try again.",
-        variant: "destructive"
-      });
+    meta: {
+      onError: () => {
+        toast({
+          title: "Error",
+          description: "Failed to fetch company overview. Please try again.",
+          variant: "destructive"
+        });
+      }
     }
   });
 
@@ -31,12 +33,14 @@ const Index = () => {
     queryFn: () => getTimeSeriesDaily(symbol),
     enabled: !!symbol,
     retry: false,
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to fetch price data. Please try again.",
-        variant: "destructive"
-      });
+    meta: {
+      onError: () => {
+        toast({
+          title: "Error",
+          description: "Failed to fetch price data. Please try again.",
+          variant: "destructive"
+        });
+      }
     }
   });
 

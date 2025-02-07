@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 
 const BASE_URL = 'https://www.alphavantage.co/query';
@@ -49,37 +48,41 @@ export interface TimeSeriesData {
   adjClose?: number;
 }
 
+const validateAPIKey = (apiKey: string): boolean => {
+  return apiKey !== 'demo' && apiKey.length > 0;
+};
+
 const processTimeSeriesResponse = (data: any): TimeSeriesData[] => {
-  if (!data || !data['Time Series (Daily)']) {
-    console.error('Invalid time series data structure:', data);
-    throw new Error('Invalid time series data structure');
+  if (!data || typeof data !== 'object') {
+    throw new Error('Invalid API response format');
+  }
+
+  if (data.Information && data.Information.includes('demo')) {
+    throw new Error('Invalid API key. Please use a valid Alpha Vantage API key');
+  }
+
+  if (data.Error) {
+    throw new Error(`API Error: ${data.Error}`);
+  }
+
+  if (!data['Time Series (Daily)']) {
+    throw new Error('No time series data available');
   }
 
   const timeSeries = data['Time Series (Daily)'];
-  const timeSeriesEntries = Object.entries(timeSeries);
-  
-  if (!timeSeriesEntries.length) {
-    console.error('Empty time series data');
-    throw new Error('Empty time series data');
-  }
-
-  return timeSeriesEntries.map(([date, values]: [string, any]) => {
+  return Object.entries(timeSeries).map(([date, values]: [string, any]) => {
     if (!values || typeof values !== 'object') {
-      console.error('Invalid values for date:', date, values);
       throw new Error(`Invalid data format for date ${date}`);
     }
 
-    // Convert string values to numbers before processing
-    const open = parseFloat(values['1. open'] || '0');
-    const high = parseFloat(values['2. high'] || '0');
-    const low = parseFloat(values['3. low'] || '0');
-    const close = parseFloat(values['4. close'] || '0');
-    const volume = parseFloat(values['5. volume'] || '0');
-    const adjClose = parseFloat(values['5. adjusted close'] || values['4. close'] || '0');
+    const open = Number(values['1. open']);
+    const high = Number(values['2. high']);
+    const low = Number(values['3. low']);
+    const close = Number(values['4. close']);
+    const volume = Number(values['5. volume']);
+    const adjClose = Number(values['5. adjusted close'] || values['4. close']);
 
-    // Validate numeric values
     if ([open, high, low, close, volume, adjClose].some(isNaN)) {
-      console.error('Invalid numeric data for date:', date, values);
       throw new Error(`Invalid numeric data for date ${date}`);
     }
 
@@ -100,6 +103,10 @@ export const getStockOverview = async (symbol: string): Promise<StockOverview> =
     throw new Error('Symbol is required');
   }
 
+  if (!validateAPIKey(API_KEY)) {
+    throw new Error('Valid API key required. Demo key not accepted');
+  }
+
   try {
     const response = await axios.get(BASE_URL, {
       params: {
@@ -110,13 +117,23 @@ export const getStockOverview = async (symbol: string): Promise<StockOverview> =
     });
 
     if (!response.data || Object.keys(response.data).length === 0) {
-      console.error('Empty response from API for symbol:', symbol);
       throw new Error('No data returned from API');
+    }
+
+    if (!response.data.Symbol || !response.data.Name) {
+      throw new Error('Invalid company overview data format');
     }
 
     return response.data;
   } catch (error) {
-    console.error('Error fetching stock overview:', error);
+    if (axios.isAxiosError(error)) {
+      if (error.response?.status === 401) {
+        throw new Error('Invalid API key');
+      }
+      if (error.response?.status === 429) {
+        throw new Error('API rate limit exceeded');
+      }
+    }
     throw error;
   }
 };
@@ -124,6 +141,10 @@ export const getStockOverview = async (symbol: string): Promise<StockOverview> =
 export const getTimeSeriesDaily = async (symbol: string): Promise<TimeSeriesData[]> => {
   if (!symbol) {
     throw new Error('Symbol is required');
+  }
+
+  if (!validateAPIKey(API_KEY)) {
+    throw new Error('Valid API key required. Demo key not accepted');
   }
 
   try {
@@ -136,14 +157,16 @@ export const getTimeSeriesDaily = async (symbol: string): Promise<TimeSeriesData
       }
     });
 
-    if (!response.data) {
-      console.error('Empty response from API for symbol:', symbol);
-      throw new Error('No data returned from API');
-    }
-
     return processTimeSeriesResponse(response.data);
   } catch (error) {
-    console.error('Error fetching time series data:', error);
+    if (axios.isAxiosError(error)) {
+      if (error.response?.status === 401) {
+        throw new Error('Invalid API key');
+      }
+      if (error.response?.status === 429) {
+        throw new Error('API rate limit exceeded');
+      }
+    }
     throw error;
   }
 };
@@ -154,18 +177,14 @@ export const calculateTechnicalIndicators = (data: TimeSeriesData[]) => {
   const prices = data.map(d => d.close);
   const volumes = data.map(d => d.volume);
 
-  // Calculate Simple Moving Averages
   const sma20 = calculateSMA(prices, 20);
   const sma50 = calculateSMA(prices, 50);
   const sma200 = calculateSMA(prices, 200);
 
-  // Calculate RSI
   const rsi = calculateRSI(prices);
 
-  // Calculate MACD
   const macd = calculateMACD(prices);
 
-  // Calculate Volume Moving Average
   const volumeSMA = calculateSMA(volumes, 20);
 
   return {
@@ -179,7 +198,6 @@ export const calculateTechnicalIndicators = (data: TimeSeriesData[]) => {
   };
 };
 
-// Technical Analysis Helper Functions
 const calculateSMA = (data: number[], period: number): number[] => {
   const sma = [];
   for (let i = period - 1; i < data.length; i++) {
@@ -194,7 +212,6 @@ const calculateRSI = (prices: number[], period: number = 14): number[] => {
   let gains = 0;
   let losses = 0;
 
-  // Ensure we're working with numerical values
   const numericPrices = prices.map(price => typeof price === 'string' ? parseFloat(price) : price);
 
   for (let i = 1; i < numericPrices.length; i++) {
@@ -240,18 +257,14 @@ const calculateEMA = (data: number[], period: number): number[] => {
   const ema = [];
   const multiplier = 2 / (period + 1);
 
-  // Convert any string values to numbers
   const numericData = data.map(value => typeof value === 'string' ? parseFloat(value) : value);
 
-  // Start with SMA
   let smaFirst = numericData.slice(0, period).reduce((a, b) => a + b, 0) / period;
   ema.push(smaFirst);
 
-  // Calculate EMA
   for (let i = period; i < numericData.length; i++) {
     ema.push((numericData[i] - ema[ema.length - 1]) * multiplier + ema[ema.length - 1]);
   }
 
   return ema;
 };
-

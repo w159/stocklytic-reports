@@ -1,3 +1,4 @@
+
 import axios from 'axios';
 
 const BASE_URL = 'https://www.alphavantage.co/query';
@@ -68,6 +69,10 @@ const processTimeSeriesResponse = (data: any): TimeSeriesData[] => {
     throw new Error('API rate limit exceeded. Please try again later.');
   }
 
+  if (data.Information) {
+    throw new Error(data.Information);
+  }
+
   if (data.Error) {
     throw new Error(`API Error: ${data.Error}`);
   }
@@ -84,7 +89,7 @@ const processTimeSeriesResponse = (data: any): TimeSeriesData[] => {
     low: Number(values['3. low']),
     close: Number(values['4. close']),
     volume: Number(values['5. volume']),
-    adjClose: Number(values['5. adjusted close'] || values['4. close'])
+    adjClose: Number(values['4. close'])
   }));
 };
 
@@ -145,7 +150,7 @@ export const getTimeSeriesDaily = async (symbol: string): Promise<TimeSeriesData
     
     const response = await axios.get(BASE_URL, {
       params: {
-        function: 'TIME_SERIES_DAILY_ADJUSTED',
+        function: 'TIME_SERIES_DAILY', // Changed from TIME_SERIES_DAILY_ADJUSTED
         symbol,
         outputsize: 'compact',
         apikey: apiKey

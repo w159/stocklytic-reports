@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const BASE_URL = 'https://www.alphavantage.co/query';
-const API_KEY = 'demo'; // Replace with actual API key
+const API_KEY = 'YOUR_API_KEY'; // Replace with your actual API key
 
 export interface StockOverview {
   Symbol: string;
@@ -49,7 +49,7 @@ export interface TimeSeriesData {
 }
 
 const validateAPIKey = (apiKey: string): boolean => {
-  return apiKey !== 'demo' && apiKey.length > 0;
+  return apiKey.length > 0;
 };
 
 const processTimeSeriesResponse = (data: any): TimeSeriesData[] => {
@@ -104,7 +104,7 @@ export const getStockOverview = async (symbol: string): Promise<StockOverview> =
   }
 
   if (!validateAPIKey(API_KEY)) {
-    throw new Error('Valid API key required. Demo key not accepted');
+    throw new Error('Valid API key required');
   }
 
   try {
@@ -144,7 +144,7 @@ export const getTimeSeriesDaily = async (symbol: string): Promise<TimeSeriesData
   }
 
   if (!validateAPIKey(API_KEY)) {
-    throw new Error('Valid API key required. Demo key not accepted');
+    throw new Error('Valid API key required');
   }
 
   try {

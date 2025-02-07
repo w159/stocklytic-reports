@@ -8,7 +8,9 @@ interface TechnicalIndicatorsProps {
 }
 
 const TechnicalIndicators = ({ data }: TechnicalIndicatorsProps) => {
-  // Calculate RSI, MACD, and other technical indicators
+  const closePrices = data.map(d => d.close);
+  
+  // Calculate RSI
   const calculateRSI = (prices: number[], periods: number = 14): number => {
     if (prices.length < periods) return 0;
     
@@ -30,14 +32,33 @@ const TechnicalIndicators = ({ data }: TechnicalIndicatorsProps) => {
     const rs = avgGain / avgLoss;
     return 100 - (100 / (1 + rs));
   };
-
-  const closePrices = data.map(d => d.close);
-  const rsi = calculateRSI(closePrices);
   
-  // Calculate 50-day moving average
-  const ma50 = closePrices.length >= 50 
-    ? closePrices.slice(0, 50).reduce((a, b) => a + b) / 50 
-    : null;
+  // Calculate Moving Averages
+  const calculateMA = (prices: number[], period: number): number => {
+    if (prices.length < period) return 0;
+    return prices.slice(0, period).reduce((a, b) => a + b) / period;
+  };
+
+  const rsi = calculateRSI(closePrices);
+  const ma20 = calculateMA(closePrices, 20);
+  const ma50 = calculateMA(closePrices, 50);
+  const ma200 = calculateMA(closePrices, 200);
+  
+  // Calculate MACD
+  const calculateMACD = (prices: number[]): { macd: number; signal: number; histogram: number } => {
+    const ema12 = calculateMA(prices, 12);
+    const ema26 = calculateMA(prices, 26);
+    const macd = ema12 - ema26;
+    const signal = calculateMA([macd], 9);
+    return {
+      macd,
+      signal,
+      histogram: macd - signal
+    };
+  };
+
+  const macdData = calculateMACD(closePrices);
+  const currentPrice = closePrices[0];
 
   return (
     <Card className="p-6 bg-white/80 backdrop-blur-sm border-gray-100">
@@ -49,16 +70,46 @@ const TechnicalIndicators = ({ data }: TechnicalIndicatorsProps) => {
           interpretation={rsi > 70 ? 'Overbought' : rsi < 30 ? 'Oversold' : 'Neutral'}
         />
         <InfoItem 
+          label="MACD" 
+          value={macdData.macd.toFixed(2)} 
+          interpretation={macdData.macd > macdData.signal ? 'Bullish' : 'Bearish'}
+        />
+        <InfoItem 
+          label="20-Day MA" 
+          value={`$${ma20.toFixed(2)}`}
+          interpretation={currentPrice > ma20 ? 'Above MA' : 'Below MA'} 
+        />
+        <InfoItem 
           label="50-Day MA" 
-          value={ma50 ? `$${ma50.toFixed(2)}` : 'N/A'} 
-          interpretation={ma50 && closePrices[0] > ma50 ? 'Above MA' : 'Below MA'}
+          value={`$${ma50.toFixed(2)}`}
+          interpretation={currentPrice > ma50 ? 'Above MA' : 'Below MA'}
+        />
+        <InfoItem 
+          label="200-Day MA" 
+          value={`$${ma200.toFixed(2)}`}
+          interpretation={currentPrice > ma200 ? 'Above MA' : 'Below MA'}
+        />
+        <InfoItem 
+          label="MACD Signal" 
+          value={macdData.signal.toFixed(2)}
+          interpretation={macdData.histogram > 0 ? 'Positive' : 'Negative'}
+        />
+        <InfoItem 
+          label="MACD Histogram" 
+          value={macdData.histogram.toFixed(2)}
+          interpretation={macdData.histogram > 0 ? 'Bullish' : 'Bearish'}
+        />
+        <InfoItem 
+          label="Trend" 
+          value={currentPrice > ma200 ? 'Bullish' : 'Bearish'}
+          interpretation={`${((currentPrice - ma200) / ma200 * 100).toFixed(2)}% from 200 MA`}
         />
       </div>
     </Card>
   );
 };
 
-const InfoItem = ({ label, value, interpretation }: { label: string; value: string; interpretation: string }) => (
+const InfoItem = ({ label, value, interpretation }: { label: string; value: string | number; interpretation: string }) => (
   <div className="space-y-1">
     <p className="text-sm text-gray-500">{label}</p>
     <p className="font-medium">{value}</p>

@@ -40,6 +40,16 @@ const NewsAnalysis = ({ symbol }: NewsAnalysisProps) => {
     });
   };
 
+  const getDateFromString = (dateString: string) => {
+    const standardDate = dateString.length === 8 ? `${dateString}T0000` : dateString;
+    const year = standardDate.substring(0, 4);
+    const month = standardDate.substring(4, 6);
+    const day = standardDate.substring(6, 8);
+    const hour = standardDate.substring(9, 11);
+    const minute = standardDate.substring(11, 13);
+    return new Date(`${year}-${month}-${day}T${hour}:${minute}:00`);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -64,10 +74,17 @@ const NewsAnalysis = ({ symbol }: NewsAnalysisProps) => {
     );
   }
 
+  // Sort news articles by date in descending order (newest first)
+  const sortedNews = [...news].sort((a, b) => {
+    const dateA = getDateFromString(a.time_published);
+    const dateB = getDateFromString(b.time_published);
+    return dateB.getTime() - dateA.getTime();
+  });
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {news.map((item, index) => (
+        {sortedNews.map((item, index) => (
           <div
             key={index}
             className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"

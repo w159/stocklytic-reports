@@ -17,6 +17,29 @@ const NewsAnalysis = ({ symbol }: NewsAnalysisProps) => {
     enabled: !!symbol,
   });
 
+  const formatDate = (dateString: string) => {
+    // The API returns dates in format "YYYYMMDDTHHMM" or "YYYYMMDD"
+    // First, standardize the format by adding time if it's not present
+    let standardDate = dateString;
+    if (dateString.length === 8) {
+      standardDate = `${dateString}T0000`;
+    }
+    
+    // Convert to YYYY-MM-DDTHH:MM format for Date constructor
+    const year = standardDate.substring(0, 4);
+    const month = standardDate.substring(4, 6);
+    const day = standardDate.substring(6, 8);
+    const hour = standardDate.substring(9, 11);
+    const minute = standardDate.substring(11, 13);
+    
+    const date = new Date(`${year}-${month}-${day}T${hour}:${minute}:00`);
+    return date.toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -55,7 +78,7 @@ const NewsAnalysis = ({ symbol }: NewsAnalysisProps) => {
                 <span className="text-sm font-medium text-gray-600">{item.source}</span>
               </div>
               <span className="text-sm text-gray-500">
-                {new Date(item.time_published).toLocaleDateString()}
+                {formatDate(item.time_published)}
               </span>
             </div>
             <h3 className="text-lg font-semibold mb-2">{item.title}</h3>

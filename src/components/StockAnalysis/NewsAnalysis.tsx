@@ -74,12 +74,29 @@ const NewsAnalysis = ({ symbol }: NewsAnalysisProps) => {
     );
   }
 
-  // Sort news articles by date in descending order (newest first)
-  const sortedNews = [...news].sort((a, b) => {
-    const dateA = getDateFromString(a.time_published);
-    const dateB = getDateFromString(b.time_published);
-    return dateB.getTime() - dateA.getTime();
-  });
+  // Calculate date 6 months ago
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+  // Filter and sort news articles by date in descending order (newest first)
+  const sortedNews = [...news]
+    .filter(item => {
+      const articleDate = getDateFromString(item.time_published);
+      return articleDate >= sixMonthsAgo;
+    })
+    .sort((a, b) => {
+      const dateA = getDateFromString(a.time_published);
+      const dateB = getDateFromString(b.time_published);
+      return dateB.getTime() - dateA.getTime();
+    });
+
+  if (sortedNews.length === 0) {
+    return (
+      <div className="text-center py-8 text-gray-500">
+        No recent news available for {symbol} in the last 6 months
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

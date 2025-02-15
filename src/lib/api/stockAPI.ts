@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { saveStockPrices, saveFinancialMetrics, saveNewsSentiments } from '../supabase/client';
+import { saveStockPrices, saveFinancialMetrics, saveNewsSentiments } from '../sql/client';
 
 const BASE_URL = 'https://www.alphavantage.co/query';
 

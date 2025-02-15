@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { saveStockPrices, saveFinancialMetrics, saveNewsSentiments } from '../supabase/client';
 
 const BASE_URL = 'https://www.alphavantage.co/query';
 
@@ -72,7 +73,7 @@ const getApiKey = (): string => {
   return apiKey;
 };
 
-const processTimeSeriesResponse = (data: any): TimeSeriesData[] => {
+const processTimeSeriesResponse = async (data: any, symbol: string): Promise<TimeSeriesData[]> => {
   if (!data || typeof data !== 'object') {
     throw new Error('Invalid API response format');
   }
@@ -98,7 +99,7 @@ const processTimeSeriesResponse = (data: any): TimeSeriesData[] => {
     throw new Error('No time series data available');
   }
 
-  return Object.entries(timeSeries).map(([date, values]: [string, any]) => ({
+  const processedData = Object.entries(timeSeries).map(([date, values]: [string, any]) => ({
     date,
     open: Number(values['1. open']),
     high: Number(values['2. high']),
@@ -107,6 +108,20 @@ const processTimeSeriesResponse = (data: any): TimeSeriesData[] => {
     volume: Number(values['5. volume']),
     adjClose: Number(values['4. close'])
   }));
+
+  await saveStockPrices(
+    processedData.map(item => ({
+      symbol,
+      date: item.date,
+      open: item.open,
+      high: item.high,
+      low: item.low,
+      close: item.close,
+      volume: item.volume
+    }))
+  );
+
+  return processedData;
 };
 
 export const getStockOverview = async (symbol: string): Promise<StockOverview> => {
@@ -175,7 +190,7 @@ export const getTimeSeriesDaily = async (symbol: string): Promise<TimeSeriesData
 
     console.log('API Response:', JSON.stringify(response.data, null, 2));
     
-    return processTimeSeriesResponse(response.data);
+    return processTimeSeriesResponse(response.data, symbol);
   } catch (error) {
     console.error('Error fetching time series data:', error);
     if (axios.isAxiosError(error)) {
@@ -317,7 +332,21 @@ export const getNewsData = async (symbol: string): Promise<NewsItem[]> => {
       throw new Error('Invalid news data format');
     }
 
-    return response.data.feed;
+    const newsData = response.data.feed;
+
+    await saveNewsSentiments(
+      newsData.map(item => ({
+        symbol,
+        date: item.time_published,
+        title: item.title,
+        summary: item.summary,
+        sentiment_score: item.overall_sentiment_score || 0,
+        source: item.source,
+        url: item.url
+      }))
+    );
+
+    return newsData;
   } catch (error) {
     if (axios.isAxiosError(error)) {
       if (error.response?.status === 401) {

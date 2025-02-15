@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Calendar, NewspaperIcon, TrendingUp, ExternalLink } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { getNewsData, type NewsItem } from '@/lib/api/stockAPI';
@@ -10,7 +10,19 @@ interface NewsAnalysisProps {
   symbol: string;
 }
 
+const TIME_FRAMES = {
+  '1M': 1,
+  '3M': 3,
+  '6M': 6,
+  '1Y': 12,
+  'ALL': 0
+} as const;
+
+type TimeFrame = keyof typeof TIME_FRAMES;
+
 const NewsAnalysis = ({ symbol }: NewsAnalysisProps) => {
+  const [selectedTimeFrame, setSelectedTimeFrame] = useState<TimeFrame>('6M');
+
   const { data: news, isLoading, error } = useQuery({
     queryKey: ['news', symbol],
     queryFn: () => getNewsData(symbol),
@@ -74,15 +86,18 @@ const NewsAnalysis = ({ symbol }: NewsAnalysisProps) => {
     );
   }
 
-  // Calculate date 6 months ago
-  const sixMonthsAgo = new Date();
-  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+  // Calculate cutoff date based on selected time frame
+  const cutoffDate = new Date();
+  if (TIME_FRAMES[selectedTimeFrame] > 0) {
+    cutoffDate.setMonth(cutoffDate.getMonth() - TIME_FRAMES[selectedTimeFrame]);
+  }
 
-  // Filter and sort news articles by date in descending order (newest first)
+  // Filter and sort news articles
   const sortedNews = [...news]
     .filter(item => {
+      if (selectedTimeFrame === 'ALL') return true;
       const articleDate = getDateFromString(item.time_published);
-      return articleDate >= sixMonthsAgo;
+      return articleDate >= cutoffDate;
     })
     .sort((a, b) => {
       const dateA = getDateFromString(a.time_published);
@@ -93,13 +108,25 @@ const NewsAnalysis = ({ symbol }: NewsAnalysisProps) => {
   if (sortedNews.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
-        No recent news available for {symbol} in the last 6 months
+        No news available for {symbol} in the selected time period
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-end space-x-2 mb-4">
+        {Object.keys(TIME_FRAMES).map((timeFrame) => (
+          <Button
+            key={timeFrame}
+            variant={selectedTimeFrame === timeFrame ? "default" : "outline"}
+            size="sm"
+            onClick={() => setSelectedTimeFrame(timeFrame as TimeFrame)}
+          >
+            {timeFrame}
+          </Button>
+        ))}
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {sortedNews.map((item, index) => (
           <div

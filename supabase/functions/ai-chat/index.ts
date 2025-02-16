@@ -62,13 +62,16 @@ async function getCompanyFacts(cik: string) {
 
 async function getRealTimeStockPrice(symbol: string) {
   try {
-    const apiKey = localStorage.getItem('alphavantage_api_key');
+    const apiKey = Deno.env.get('ALPHA_VANTAGE_API_KEY');
     if (!apiKey) {
-      throw new Error('Alpha Vantage API key not found');
+      console.error('Alpha Vantage API key not found in environment variables');
+      return null;
     }
     
     const response = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${apiKey}`);
     const data = await response.json();
+    
+    console.log('Alpha Vantage API Response:', JSON.stringify(data, null, 2));
     
     if (data['Global Quote']) {
       return {
@@ -79,6 +82,11 @@ async function getRealTimeStockPrice(symbol: string) {
         lastTradingDay: data['Global Quote']['07. latest trading day']
       };
     }
+    
+    if (data.Note) {
+      console.error('Alpha Vantage API Note:', data.Note);
+    }
+    
     return null;
   } catch (error) {
     console.error('Error fetching real-time stock price:', error);

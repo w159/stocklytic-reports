@@ -117,6 +117,16 @@ serve(async (req) => {
     const netIncomeData = companyFacts?.facts['us-gaap']?.['NetIncomeLoss'];
     const operatingIncomeData = companyFacts?.facts['us-gaap']?.['OperatingIncomeLoss'];
 
+    // Sort financial data by end date to get most recent periods
+    const sortFinancialData = (data: any[]) => {
+      if (!data) return [];
+      return [...data].sort((a, b) => new Date(b.end).getTime() - new Date(a.end).getTime());
+    };
+
+    const sortedRevenueData = sortFinancialData(revenueData);
+    const sortedNetIncomeData = sortFinancialData(netIncomeData);
+    const sortedOperatingIncomeData = sortFinancialData(operatingIncomeData);
+
     // Create chat with context from SEC data
     const chat = model.startChat({
       history: [
@@ -138,21 +148,44 @@ serve(async (req) => {
 
           ${companyFacts ? `
           KEY FINANCIAL METRICS:
-          Revenue (most recent): ${revenueData?.[revenueData.length - 1]?.val || 'N/A'}
-          Revenue (previous period): ${revenueData?.[revenueData.length - 2]?.val || 'N/A'}
-          Net Income (most recent): ${netIncomeData?.[netIncomeData.length - 1]?.val || 'N/A'}
-          Net Income (previous period): ${netIncomeData?.[netIncomeData.length - 2]?.val || 'N/A'}
-          Operating Income (most recent): ${operatingIncomeData?.[operatingIncomeData.length - 1]?.val || 'N/A'}
-          Operating Income (previous period): ${operatingIncomeData?.[operatingIncomeData.length - 2]?.val || 'N/A'}
+          
+          Most Recent Revenue: 
+          Amount: $${sortedRevenueData[0]?.val?.toLocaleString() || 'N/A'}
+          Period End Date: ${sortedRevenueData[0]?.end || 'N/A'}
+          
+          Previous Period Revenue:
+          Amount: $${sortedRevenueData[1]?.val?.toLocaleString() || 'N/A'}
+          Period End Date: ${sortedRevenueData[1]?.end || 'N/A'}
+          
+          Most Recent Net Income:
+          Amount: $${sortedNetIncomeData[0]?.val?.toLocaleString() || 'N/A'}
+          Period End Date: ${sortedNetIncomeData[0]?.end || 'N/A'}
+          
+          Previous Period Net Income:
+          Amount: $${sortedNetIncomeData[1]?.val?.toLocaleString() || 'N/A'}
+          Period End Date: ${sortedNetIncomeData[1]?.end || 'N/A'}
+          
+          Most Recent Operating Income:
+          Amount: $${sortedOperatingIncomeData[0]?.val?.toLocaleString() || 'N/A'}
+          Period End Date: ${sortedOperatingIncomeData[0]?.end || 'N/A'}
+          
+          Previous Period Operating Income:
+          Amount: $${sortedOperatingIncomeData[1]?.val?.toLocaleString() || 'N/A'}
+          Period End Date: ${sortedOperatingIncomeData[1]?.end || 'N/A'}
           ` : ''}
 
-          This data is from official SEC filings and is current as of the latest filing date shown above. Use this data to provide detailed analysis, focusing on the most recent reporting period and year-over-year comparisons. 
+          IMPORTANT: This data is from official SEC filings and represents the most recent filings available. 
+          Use this data to provide detailed analysis, focusing on the specific dates shown above.
           
-          IMPORTANT: Do not disclaim access to current data. You have access to the latest SEC filings up to ${new Date().toISOString().split('T')[0]}. If you see filings from 2024, you can and should analyze them.`,
+          When analyzing, make sure to:
+          1. Reference the actual filing dates and reporting periods shown above
+          2. Compare the most recent period with the previous period using the exact dates provided
+          3. Do not make statements about time periods not covered by this data
+          4. If you see recent filings from 2024, you should analyze them as they are official SEC data`,
         },
         {
           role: "model",
-          parts: "I understand I have access to the latest SEC EDGAR data up to the present date. I will analyze the most recent filings and financial data, including any 2024 filings if available. I will not disclaim access to current data, as I can see the actual filing dates in the provided information.",
+          parts: "I understand that I should analyze the company using the exact dates and periods shown in the SEC filing data above. I will provide analysis based on the most recent filing periods and make comparisons using the specific dates provided in the data. I will not make assumptions about time periods not covered by this data.",
         },
       ],
       generationConfig: {

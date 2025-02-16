@@ -104,30 +104,55 @@ serve(async (req) => {
       },
     })
 
+    // Process recent filings
+    const recentFilings = companyData?.filings?.recent?.slice(0, 5).map(filing => ({
+      form: filing.form,
+      filingDate: filing.filingDate,
+      reportDate: filing.reportDate,
+      accessionNumber: filing.accessionNumber
+    }));
+
+    // Process financial facts
+    const revenueData = companyFacts?.facts['us-gaap']?.['Revenues'] || companyFacts?.facts['us-gaap']?.['Revenue'];
+    const netIncomeData = companyFacts?.facts['us-gaap']?.['NetIncomeLoss'];
+    const operatingIncomeData = companyFacts?.facts['us-gaap']?.['OperatingIncomeLoss'];
+
     // Create chat with context from SEC data
     const chat = model.startChat({
       history: [
         {
           role: "user",
-          parts: `You are a financial analysis AI assistant with access to SEC EDGAR data. 
-          When analyzing companies, use the following data if available:
+          parts: `You are a financial analysis AI assistant with access to real-time SEC EDGAR data. Here is the current data for the company:
+
           ${companyData ? `
-          Recent SEC Filings: ${JSON.stringify(companyData.filings.recent, null, 2)}
+          COMPANY INFORMATION:
           Company Name: ${companyData.name}
-          Filing Period: ${companyData.filings.recent[0]?.reportDate || 'N/A'}
-          Form Type: ${companyData.filings.recent[0]?.form || 'N/A'}
+          CIK: ${companyData.cik}
+          
+          MOST RECENT FILINGS:
+          ${JSON.stringify(recentFilings, null, 2)}
+          Latest Filing Date: ${companyData.filings.recent[0]?.filingDate}
+          Latest Report Date: ${companyData.filings.recent[0]?.reportDate}
+          Latest Form Type: ${companyData.filings.recent[0]?.form}
           ` : ''}
+
           ${companyFacts ? `
-          Key Financial Facts from SEC Filings:
-          - Revenue: ${JSON.stringify(companyFacts.facts['us-gaap']?.['Revenues'] || companyFacts.facts['us-gaap']?.['Revenue'], null, 2)}
-          - Net Income: ${JSON.stringify(companyFacts.facts['us-gaap']?.['NetIncomeLoss'], null, 2)}
-          - Operating Income: ${JSON.stringify(companyFacts.facts['us-gaap']?.['OperatingIncomeLoss'], null, 2)}
+          KEY FINANCIAL METRICS:
+          Revenue (most recent): ${revenueData?.[revenueData.length - 1]?.val || 'N/A'}
+          Revenue (previous period): ${revenueData?.[revenueData.length - 2]?.val || 'N/A'}
+          Net Income (most recent): ${netIncomeData?.[netIncomeData.length - 1]?.val || 'N/A'}
+          Net Income (previous period): ${netIncomeData?.[netIncomeData.length - 2]?.val || 'N/A'}
+          Operating Income (most recent): ${operatingIncomeData?.[operatingIncomeData.length - 1]?.val || 'N/A'}
+          Operating Income (previous period): ${operatingIncomeData?.[operatingIncomeData.length - 2]?.val || 'N/A'}
           ` : ''}
-          Please provide detailed analysis based on this official SEC data, focusing on the most recent reporting period and year-over-year comparisons when available. If asked about a specific year, compare it with previous years using the available data. You have access to real-time SEC filing data, so please use it to provide current information. Do not disclaim access to recent data if it's available in the filings.`,
+
+          This data is from official SEC filings and is current as of the latest filing date shown above. Use this data to provide detailed analysis, focusing on the most recent reporting period and year-over-year comparisons. 
+          
+          IMPORTANT: Do not disclaim access to current data. You have access to the latest SEC filings up to ${new Date().toISOString().split('T')[0]}. If you see filings from 2024, you can and should analyze them.`,
         },
         {
           role: "model",
-          parts: "I understand I'm a financial analysis AI assistant with access to SEC EDGAR data. I'll provide detailed analysis based on official filings and financial facts, focusing on accurate reporting periods and data sources. I'll make year-over-year comparisons when possible and clearly indicate which reporting periods I'm analyzing. I'll use the most recent SEC filing data available to provide current information.",
+          parts: "I understand I have access to the latest SEC EDGAR data up to the present date. I will analyze the most recent filings and financial data, including any 2024 filings if available. I will not disclaim access to current data, as I can see the actual filing dates in the provided information.",
         },
       ],
       generationConfig: {

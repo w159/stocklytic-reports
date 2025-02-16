@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -14,7 +13,6 @@ import PortfolioManagement from '@/components/StockAnalysis/PortfolioManagement'
 import { getStockOverview, getTimeSeriesDaily } from '@/lib/api/stockAPI';
 import { toast } from '@/components/ui/use-toast';
 import AIChat from '@/components/StockAnalysis/AIChat';
-import TradingViewWidget from '@/components/StockAnalysis/TradingViewWidget';
 
 const Index = () => {
   const [symbol, setSymbol] = useState<string>('');
@@ -150,58 +148,53 @@ const Index = () => {
                   <p className="mt-4 text-gray-600">Loading comprehensive analysis...</p>
                 </div>
               ) : (
-                <>
-                  <div className="w-full bg-black rounded-lg overflow-hidden shadow-lg">
-                    <TradingViewWidget symbol={symbol} />
-                  </div>
-                  <Tabs defaultValue="overview" className="w-full">
-                    <TabsList className="grid w-full grid-cols-7">
-                      <TabsTrigger value="overview">Overview</TabsTrigger>
-                      <TabsTrigger value="price">Price Performance</TabsTrigger>
-                      <TabsTrigger value="portfolio">Portfolio & Management</TabsTrigger>
-                      <TabsTrigger value="metrics">Key Metrics</TabsTrigger>
-                      <TabsTrigger value="technical">Technical Analysis</TabsTrigger>
-                      <TabsTrigger value="news">News & Reviews</TabsTrigger>
-                      <TabsTrigger value="ai">AI Assistant</TabsTrigger>
-                    </TabsList>
+                <Tabs defaultValue="overview" className="w-full">
+                  <TabsList className="grid w-full grid-cols-7">
+                    <TabsTrigger value="overview">Overview</TabsTrigger>
+                    <TabsTrigger value="price">Price Performance</TabsTrigger>
+                    <TabsTrigger value="portfolio">Portfolio & Management</TabsTrigger>
+                    <TabsTrigger value="metrics">Key Metrics</TabsTrigger>
+                    <TabsTrigger value="technical">Technical Analysis</TabsTrigger>
+                    <TabsTrigger value="news">News & Reviews</TabsTrigger>
+                    <TabsTrigger value="ai">AI Assistant</TabsTrigger>
+                  </TabsList>
 
-                    <TabsContent value="overview" className="mt-6">
-                      {overview && <CompanyOverview data={overview} />}
-                    </TabsContent>
+                  <TabsContent value="overview" className="mt-6">
+                    {overview && <CompanyOverview data={overview} symbol={symbol} />}
+                  </TabsContent>
 
-                    <TabsContent value="price" className="mt-6">
-                      {chartData && (
-                        <div className="bg-white/80 backdrop-blur-sm rounded-lg border border-gray-100 p-6">
-                          <h2 className="text-xl font-semibold mb-4">Price History</h2>
-                          <StockChart data={chartData} />
-                        </div>
-                      )}
-                    </TabsContent>
-
-                    <TabsContent value="portfolio" className="mt-6">
-                      {overview && <PortfolioManagement data={overview} />}
-                    </TabsContent>
-
-                    <TabsContent value="metrics" className="mt-6">
-                      {metrics && <KeyMetrics metrics={metrics} />}
-                    </TabsContent>
-
-                    <TabsContent value="technical" className="mt-6">
-                      {timeSeriesData && <TechnicalIndicators data={timeSeriesData} />}
-                    </TabsContent>
-
-                    <TabsContent value="news" className="mt-6">
+                  <TabsContent value="price" className="mt-6">
+                    {chartData && (
                       <div className="bg-white/80 backdrop-blur-sm rounded-lg border border-gray-100 p-6">
-                        <h2 className="text-xl font-semibold mb-4">News & Analysis</h2>
-                        {symbol && <NewsAnalysis symbol={symbol} />}
+                        <h2 className="text-xl font-semibold mb-4">Price History</h2>
+                        <StockChart data={chartData} />
                       </div>
-                    </TabsContent>
+                    )}
+                  </TabsContent>
 
-                    <TabsContent value="ai" className="mt-6">
-                      <AIChat />
-                    </TabsContent>
-                  </Tabs>
-                </>
+                  <TabsContent value="portfolio" className="mt-6">
+                    {overview && <PortfolioManagement data={overview} />}
+                  </TabsContent>
+
+                  <TabsContent value="metrics" className="mt-6">
+                    {metrics && <KeyMetrics metrics={metrics} />}
+                  </TabsContent>
+
+                  <TabsContent value="technical" className="mt-6">
+                    {timeSeriesData && <TechnicalIndicators data={timeSeriesData} />}
+                  </TabsContent>
+
+                  <TabsContent value="news" className="mt-6">
+                    <div className="bg-white/80 backdrop-blur-sm rounded-lg border border-gray-100 p-6">
+                      <h2 className="text-xl font-semibold mb-4">News & Analysis</h2>
+                      {symbol && <NewsAnalysis symbol={symbol} />}
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="ai" className="mt-6">
+                    <AIChat />
+                  </TabsContent>
+                </Tabs>
               )}
             </div>
           )}
@@ -217,4 +210,3 @@ const Index = () => {
 };
 
 export default Index;
-

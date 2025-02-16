@@ -83,6 +83,10 @@ serve(async (req) => {
       if (cik) {
         companyData = await getCompanyFilings(cik);
         companyFacts = await getCompanyFacts(cik);
+        
+        // Log out the full data for debugging
+        console.log('Filing data:', JSON.stringify(companyData, null, 2));
+        console.log('Facts data:', JSON.stringify(companyFacts, null, 2));
       }
     }
 
@@ -127,6 +131,10 @@ serve(async (req) => {
     const sortedNetIncomeData = sortFinancialData(netIncomeData);
     const sortedOperatingIncomeData = sortFinancialData(operatingIncomeData);
 
+    console.log('Sorted Revenue Data:', JSON.stringify(sortedRevenueData, null, 2));
+    console.log('Sorted Net Income Data:', JSON.stringify(sortedNetIncomeData, null, 2));
+    console.log('Sorted Operating Income Data:', JSON.stringify(sortedOperatingIncomeData, null, 2));
+
     // Create chat with context from SEC data
     const chat = model.startChat({
       history: [
@@ -139,59 +147,59 @@ serve(async (req) => {
           Company Name: ${companyData.name}
           CIK: ${companyData.cik}
           
-          MOST RECENT FILINGS:
-          ${JSON.stringify(recentFilings, null, 2)}
-          Latest Filing Date: ${companyData.filings.recent[0]?.filingDate}
-          Latest Report Date: ${companyData.filings.recent[0]?.reportDate}
-          Latest Form Type: ${companyData.filings.recent[0]?.form}
+          FILING INFORMATION:
+          ${recentFilings?.map((filing, index) => `
+          Filing ${index + 1}:
+          - Form Type: ${filing.form}
+          - Filing Date: ${filing.filingDate}
+          - Report Date: ${filing.reportDate}
+          `).join('\n')}
           ` : ''}
 
           ${companyFacts ? `
-          KEY FINANCIAL METRICS:
+          FINANCIAL METRICS (USD):
           
-          Most Recent Revenue: 
-          Amount: $${sortedRevenueData[0]?.val?.toLocaleString() || 'N/A'}
-          Period End Date: ${sortedRevenueData[0]?.end || 'N/A'}
+          Revenue Data:
+          ${sortedRevenueData.slice(0, 4).map((data, index) => `
+          Period ${index + 1}:
+          - Amount: $${data.val.toLocaleString()}
+          - Start Date: ${data.start}
+          - End Date: ${data.end}
+          - Filing Date: ${data.filed}
+          `).join('\n')}
           
-          Previous Period Revenue:
-          Amount: $${sortedRevenueData[1]?.val?.toLocaleString() || 'N/A'}
-          Period End Date: ${sortedRevenueData[1]?.end || 'N/A'}
+          Net Income Data:
+          ${sortedNetIncomeData.slice(0, 4).map((data, index) => `
+          Period ${index + 1}:
+          - Amount: $${data.val.toLocaleString()}
+          - Start Date: ${data.start}
+          - End Date: ${data.end}
+          - Filing Date: ${data.filed}
+          `).join('\n')}
           
-          Most Recent Net Income:
-          Amount: $${sortedNetIncomeData[0]?.val?.toLocaleString() || 'N/A'}
-          Period End Date: ${sortedNetIncomeData[0]?.end || 'N/A'}
-          
-          Previous Period Net Income:
-          Amount: $${sortedNetIncomeData[1]?.val?.toLocaleString() || 'N/A'}
-          Period End Date: ${sortedNetIncomeData[1]?.end || 'N/A'}
-          
-          Most Recent Operating Income:
-          Amount: $${sortedOperatingIncomeData[0]?.val?.toLocaleString() || 'N/A'}
-          Period End Date: ${sortedOperatingIncomeData[0]?.end || 'N/A'}
-          
-          Previous Period Operating Income:
-          Amount: $${sortedOperatingIncomeData[1]?.val?.toLocaleString() || 'N/A'}
-          Period End Date: ${sortedOperatingIncomeData[1]?.end || 'N/A'}
+          Operating Income Data:
+          ${sortedOperatingIncomeData.slice(0, 4).map((data, index) => `
+          Period ${index + 1}:
+          - Amount: $${data.val.toLocaleString()}
+          - Start Date: ${data.start}
+          - End Date: ${data.end}
+          - Filing Date: ${data.filed}
+          `).join('\n')}
           ` : ''}
 
-          IMPORTANT: You are accessing real-time SEC filing data. This data represents official filings available on SEC EDGAR. 
-          
-          When analyzing:
-          1. Use the exact dates shown above for your analysis
-          2. Focus on the most recent filing period's data for current performance
-          3. Make year-over-year or sequential comparisons using the provided periods
-          4. Do not make disclaimers about data availability - if you see data for a specific period, use it
-          5. Analyze any data from any period that is shown in the filings above, including 2024 if present
-          
-          Key points for your analysis:
-          - The latest filing date and report date shown above represent the most current data available
-          - All financial metrics show their exact reporting period end dates
-          - This data comes directly from SEC EDGAR in real-time
-          - You can and should analyze any time periods shown in the data above`,
+          IMPORTANT INSTRUCTIONS:
+          1. The data above shows EXACT reporting periods and filing dates
+          2. Each financial metric includes precise start dates, end dates, and filing dates
+          3. Use ONLY the time periods shown in the data above
+          4. When asked about a specific time period:
+             - If that period is covered by the data above, provide analysis
+             - If that period is not covered by the data above, explain which periods you do have data for
+          5. Focus on comparing actual periods shown in the data
+          6. Be explicit about which time periods you are analyzing`,
         },
         {
           role: "model",
-          parts: "I understand I should analyze the official SEC filing data shown above, using the exact dates and periods provided. I will provide analysis based on the most recent filings and compare with previous periods using the actual dates shown. I will analyze any data from any period that appears in the filings, including 2024 data if present in the SEC records.",
+          parts: "I understand that I should only analyze the specific time periods shown in the SEC filing data above. I will be explicit about which periods I am analyzing and will clearly state when a requested time period is not covered by the available data. I will reference the exact dates and periods provided in the filings.",
         },
       ],
       generationConfig: {

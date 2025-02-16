@@ -8,6 +8,55 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+async function getCompanyCIK(symbol: string): Promise<string | null> {
+  try {
+    const response = await fetch('https://www.sec.gov/files/company_tickers.json');
+    const data = await response.json();
+    
+    // Find the company by ticker symbol (case insensitive)
+    const company = Object.values(data).find(
+      (c: any) => c.ticker.toLowerCase() === symbol.toLowerCase()
+    );
+    
+    if (company) {
+      // Pad CIK with leading zeros to make it 10 digits
+      return String(company.cik_str).padStart(10, '0');
+    }
+    return null;
+  } catch (error) {
+    console.error('Error fetching CIK:', error);
+    return null;
+  }
+}
+
+async function getCompanyFilings(cik: string) {
+  try {
+    const response = await fetch(`https://data.sec.gov/submissions/CIK${cik}.json`, {
+      headers: {
+        'User-Agent': 'StockAnalysisApp stock-analysis@example.com'
+      }
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching company filings:', error);
+    return null;
+  }
+}
+
+async function getCompanyFacts(cik: string) {
+  try {
+    const response = await fetch(`https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`, {
+      headers: {
+        'User-Agent': 'StockAnalysisApp stock-analysis@example.com'
+      }
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching company facts:', error);
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -16,7 +65,22 @@ serve(async (req) => {
   try {
     const { prompt } = await req.json()
 
-    // Initialize Google AI with a specific system prompt for financial analysis
+    // Extract stock symbol from prompt if it exists
+    const symbolMatch = prompt.match(/[A-Z]{1,5}/);
+    let companyData = null;
+    let companyFacts = null;
+    
+    if (symbolMatch) {
+      const symbol = symbolMatch[0];
+      const cik = await getCompanyCIK(symbol);
+      
+      if (cik) {
+        companyData = await getCompanyFilings(cik);
+        companyFacts = await getCompanyFacts(cik);
+      }
+    }
+
+    // Initialize Google AI
     const genAI = new GoogleGenerativeAI(Deno.env.get('GOOGLE_AI_API_KEY')!)
     const model = genAI.getGenerativeModel({ 
       model: "gemini-pro",
@@ -34,16 +98,25 @@ serve(async (req) => {
       },
     })
 
-    // Create a chat session
+    // Create chat with context from SEC data
     const chat = model.startChat({
       history: [
         {
           role: "user",
-          parts: "You are a financial analysis AI assistant integrated into a stock analysis dashboard. Please provide real-time market analysis and insights.",
+          parts: `You are a financial analysis AI assistant with access to SEC EDGAR data. 
+          When analyzing companies, use the following data if available:
+          ${companyData ? `
+          Recent SEC Filings: ${JSON.stringify(companyData.filings.recent)}
+          Company Name: ${companyData.name}
+          ` : ''}
+          ${companyFacts ? `
+          Financial Facts: ${JSON.stringify(companyFacts.facts['us-gaap'])}
+          ` : ''}
+          Please provide detailed analysis based on this official SEC data.`,
         },
         {
           role: "model",
-          parts: "I understand I'm a financial analysis AI assistant. I'll provide detailed market analysis and insights based on real-time data and historical trends. I'll focus on giving actionable information while being clear about time periods and data sources.",
+          parts: "I understand I'm a financial analysis AI assistant with access to SEC EDGAR data. I'll provide detailed analysis based on official filings and financial facts, focusing on accurate reporting periods and data sources.",
         },
       ],
       generationConfig: {
@@ -79,7 +152,12 @@ serve(async (req) => {
             topP: 1,
             topK: 1,
             maxOutputTokens: 2048,
-          }
+          },
+          secData: companyData ? {
+            cik: companyData.cik,
+            name: companyData.name,
+            filingCount: companyData.filings.recent.length
+          } : null
         }
       })
 

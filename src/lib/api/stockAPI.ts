@@ -1,7 +1,5 @@
-import axios from 'axios';
-import { saveStockPrices, saveFinancialMetrics, saveNewsSentiments } from '../sql/client';
 
-const BASE_URL = 'https://www.alphavantage.co/query';
+import axios from 'axios';
 
 export interface StockOverview {
   Symbol: string;
@@ -109,17 +107,8 @@ const processTimeSeriesResponse = async (data: any, symbol: string): Promise<Tim
     adjClose: Number(values['4. close'])
   }));
 
-  await saveStockPrices(
-    processedData.map(item => ({
-      symbol,
-      date: item.date,
-      open: item.open,
-      high: item.high,
-      low: item.low,
-      close: item.close,
-      volume: item.volume
-    }))
-  );
+  // Store in localStorage for caching
+  localStorage.setItem(`stockPrices_${symbol}`, JSON.stringify(processedData));
 
   return processedData;
 };
@@ -131,7 +120,7 @@ export const getStockOverview = async (symbol: string): Promise<StockOverview> =
 
   try {
     const apiKey = getApiKey();
-    const response = await axios.get(BASE_URL, {
+    const response = await axios.get('https://www.alphavantage.co/query', {
       params: {
         function: 'OVERVIEW',
         symbol,
@@ -156,6 +145,9 @@ export const getStockOverview = async (symbol: string): Promise<StockOverview> =
       throw new Error('Invalid company overview data format');
     }
 
+    // Store in localStorage for caching
+    localStorage.setItem(`stockOverview_${symbol}`, JSON.stringify(response.data));
+
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error)) {
@@ -179,9 +171,9 @@ export const getTimeSeriesDaily = async (symbol: string): Promise<TimeSeriesData
     const apiKey = getApiKey();
     console.log('Fetching time series data for symbol:', symbol);
     
-    const response = await axios.get(BASE_URL, {
+    const response = await axios.get('https://www.alphavantage.co/query', {
       params: {
-        function: 'TIME_SERIES_DAILY', // Changed from TIME_SERIES_DAILY_ADJUSTED
+        function: 'TIME_SERIES_DAILY',
         symbol,
         outputsize: 'compact',
         apikey: apiKey
@@ -205,104 +197,6 @@ export const getTimeSeriesDaily = async (symbol: string): Promise<TimeSeriesData
   }
 };
 
-const calculateTechnicalIndicators = (data: TimeSeriesData[]) => {
-  if (!data || data.length === 0) return null;
-
-  const prices = data.map(d => d.close);
-  const volumes = data.map(d => d.volume);
-
-  const sma20 = calculateSMA(prices, 20);
-  const sma50 = calculateSMA(prices, 50);
-  const sma200 = calculateSMA(prices, 200);
-
-  const rsi = calculateRSI(prices);
-
-  const macd = calculateMACD(prices);
-
-  const volumeSMA = calculateSMA(volumes, 20);
-
-  return {
-    sma20: sma20[sma20.length - 1],
-    sma50: sma50[sma50.length - 1],
-    sma200: sma200[sma200.length - 1],
-    rsi: rsi[rsi.length - 1],
-    macd: macd.macdLine[macd.macdLine.length - 1],
-    macdSignal: macd.signalLine[macd.signalLine.length - 1],
-    volumeSMA: volumeSMA[volumeSMA.length - 1]
-  };
-};
-
-const calculateSMA = (data: number[], period: number): number[] => {
-  const sma = [];
-  for (let i = period - 1; i < data.length; i++) {
-    const sum = data.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0);
-    sma.push(sum / period);
-  }
-  return sma;
-};
-
-const calculateRSI = (prices: number[], period: number = 14): number[] => {
-  const rsi = [];
-  let gains = 0;
-  let losses = 0;
-
-  const numericPrices = prices.map(price => typeof price === 'string' ? parseFloat(price) : price);
-
-  for (let i = 1; i < numericPrices.length; i++) {
-    const difference = numericPrices[i] - numericPrices[i - 1];
-    if (difference >= 0) {
-      gains += difference;
-    } else {
-      losses -= difference;
-    }
-
-    if (i >= period) {
-      const avgGain = gains / period;
-      const avgLoss = losses / period;
-      const rs = avgGain / avgLoss;
-      rsi.push(100 - (100 / (1 + rs)));
-
-      const oldDiff = numericPrices[i - period + 1] - numericPrices[i - period];
-      if (oldDiff >= 0) {
-        gains -= oldDiff;
-      } else {
-        losses += oldDiff;
-      }
-    }
-  }
-
-  return rsi;
-};
-
-const calculateMACD = (prices: number[], fastPeriod: number = 12, slowPeriod: number = 26, signalPeriod: number = 9) => {
-  const fastEMA = calculateEMA(prices, fastPeriod);
-  const slowEMA = calculateEMA(prices, slowPeriod);
-  const macdLine = fastEMA.map((fast, i) => fast - slowEMA[i]);
-  const signalLine = calculateEMA(macdLine, signalPeriod);
-
-  return {
-    macdLine,
-    signalLine,
-    histogram: macdLine.map((macd, i) => macd - signalLine[i])
-  };
-};
-
-const calculateEMA = (data: number[], period: number): number[] => {
-  const ema = [];
-  const multiplier = 2 / (period + 1);
-
-  const numericData = data.map(value => typeof value === 'string' ? parseFloat(value) : value);
-
-  let smaFirst = numericData.slice(0, period).reduce((a, b) => a + b, 0) / period;
-  ema.push(smaFirst);
-
-  for (let i = period; i < numericData.length; i++) {
-    ema.push((numericData[i] - ema[ema.length - 1]) * multiplier + ema[ema.length - 1]);
-  }
-
-  return ema;
-};
-
 export const getNewsData = async (symbol: string): Promise<NewsItem[]> => {
   if (!symbol) {
     throw new Error('Symbol is required');
@@ -310,7 +204,7 @@ export const getNewsData = async (symbol: string): Promise<NewsItem[]> => {
 
   try {
     const apiKey = getApiKey();
-    const response = await axios.get(BASE_URL, {
+    const response = await axios.get('https://www.alphavantage.co/query', {
       params: {
         function: 'NEWS_SENTIMENT',
         tickers: symbol,
@@ -334,17 +228,8 @@ export const getNewsData = async (symbol: string): Promise<NewsItem[]> => {
 
     const newsData = response.data.feed;
 
-    await saveNewsSentiments(
-      newsData.map(item => ({
-        symbol,
-        date: item.time_published,
-        title: item.title,
-        summary: item.summary,
-        sentiment_score: item.overall_sentiment_score || 0,
-        source: item.source,
-        url: item.url
-      }))
-    );
+    // Store in localStorage for caching
+    localStorage.setItem(`newsData_${symbol}`, JSON.stringify(newsData));
 
     return newsData;
   } catch (error) {

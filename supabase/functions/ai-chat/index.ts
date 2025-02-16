@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.1.3"
@@ -61,6 +60,32 @@ async function getCompanyFacts(cik: string) {
   }
 }
 
+async function getRealTimeStockPrice(symbol: string) {
+  try {
+    const apiKey = localStorage.getItem('alphavantage_api_key');
+    if (!apiKey) {
+      throw new Error('Alpha Vantage API key not found');
+    }
+    
+    const response = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${apiKey}`);
+    const data = await response.json();
+    
+    if (data['Global Quote']) {
+      return {
+        price: data['Global Quote']['05. price'],
+        change: data['Global Quote']['09. change'],
+        changePercent: data['Global Quote']['10. change percent'],
+        volume: data['Global Quote']['06. volume'],
+        lastTradingDay: data['Global Quote']['07. latest trading day']
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Error fetching real-time stock price:', error);
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -73,6 +98,7 @@ serve(async (req) => {
     const symbolMatch = prompt.match(/[A-Z]{1,5}/);
     let companyData = null;
     let companyFacts = null;
+    let stockPrice = null;
     
     if (symbolMatch) {
       const symbol = symbolMatch[0];
@@ -83,10 +109,12 @@ serve(async (req) => {
       if (cik) {
         companyData = await getCompanyFilings(cik);
         companyFacts = await getCompanyFacts(cik);
+        stockPrice = await getRealTimeStockPrice(symbol);
         
         // Log out the full data for debugging
         console.log('Filing data:', JSON.stringify(companyData, null, 2));
         console.log('Facts data:', JSON.stringify(companyFacts, null, 2));
+        console.log('Stock price data:', JSON.stringify(stockPrice, null, 2));
       }
     }
 
@@ -140,7 +168,15 @@ serve(async (req) => {
       history: [
         {
           role: "user",
-          parts: `You are a financial analysis AI assistant with access to real-time SEC EDGAR data. Here is the current data for the company:
+          parts: `You are a financial analysis AI assistant with access to real-time SEC EDGAR data and current market data. Here is the current data for the company:
+
+          ${stockPrice ? `
+          REAL-TIME MARKET DATA:
+          Current Price: $${stockPrice.price}
+          Change: ${stockPrice.change} (${stockPrice.changePercent})
+          Volume: ${stockPrice.volume}
+          Last Trading Day: ${stockPrice.lastTradingDay}
+          ` : ''}
 
           ${companyData ? `
           COMPANY INFORMATION:
@@ -188,18 +224,15 @@ serve(async (req) => {
           ` : ''}
 
           IMPORTANT INSTRUCTIONS:
-          1. The data above shows EXACT reporting periods and filing dates
-          2. Each financial metric includes precise start dates, end dates, and filing dates
-          3. Use ONLY the time periods shown in the data above
-          4. When asked about a specific time period:
-             - If that period is covered by the data above, provide analysis
-             - If that period is not covered by the data above, explain which periods you do have data for
-          5. Focus on comparing actual periods shown in the data
-          6. Be explicit about which time periods you are analyzing`,
+          1. You have access to both real-time market data and historical SEC filings
+          2. When asked about current stock price, use the real-time data shown above
+          3. For historical analysis, use the SEC filing data with exact dates
+          4. Be explicit about which data source and time period you are using
+          5. If real-time data is not available, explain what historical data you do have`,
         },
         {
           role: "model",
-          parts: "I understand that I should only analyze the specific time periods shown in the SEC filing data above. I will be explicit about which periods I am analyzing and will clearly state when a requested time period is not covered by the available data. I will reference the exact dates and periods provided in the filings.",
+          parts: "I understand that I have access to both real-time market data and historical SEC filings. I will use real-time data for current prices when available and reference specific periods from SEC filings for historical analysis. I will be clear about which data source I am using and what time periods are covered.",
         },
       ],
       generationConfig: {

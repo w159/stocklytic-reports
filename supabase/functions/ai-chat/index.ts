@@ -18,24 +18,44 @@ serve(async (req) => {
 
     // Initialize Google AI with a specific system prompt for financial analysis
     const genAI = new GoogleGenerativeAI(Deno.env.get('GOOGLE_AI_API_KEY')!)
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" })
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-pro",
+      safetySettings: [
+        {
+          category: "HARM_CATEGORY_DANGEROUS",
+          threshold: "BLOCK_NONE",
+        },
+      ],
+      generationConfig: {
+        temperature: 0.9,
+        topP: 1,
+        topK: 1,
+        maxOutputTokens: 2048,
+      },
+    })
 
-    // Create a system prompt that guides the AI to use available data
-    const systemPrompt = `You are a financial analysis AI assistant integrated into a stock analysis dashboard. 
-You have access to historical stock data and financial metrics through the application.
-When users ask about specific stocks:
-1. Always mention you're analyzing available market data
-2. If the data isn't available, suggest using the dashboard's stock search feature
-3. Focus on providing actionable insights based on technical and fundamental analysis
-4. Be clear about what time period you're analyzing
-5. If the user asks about future performance, clearly state that you cannot predict future stock prices
-6. Recommend using the dashboard's detailed analysis tools for more in-depth information`
+    // Create a chat session
+    const chat = model.startChat({
+      history: [
+        {
+          role: "user",
+          parts: "You are a financial analysis AI assistant integrated into a stock analysis dashboard. Please provide real-time market analysis and insights.",
+        },
+        {
+          role: "model",
+          parts: "I understand I'm a financial analysis AI assistant. I'll provide detailed market analysis and insights based on real-time data and historical trends. I'll focus on giving actionable information while being clear about time periods and data sources.",
+        },
+      ],
+      generationConfig: {
+        temperature: 0.9,
+        topP: 1,
+        topK: 1,
+        maxOutputTokens: 2048,
+      },
+    });
 
-    // Combine system prompt with user prompt
-    const fullPrompt = `${systemPrompt}\n\nUser question: ${prompt}`
-
-    // Generate content
-    const result = await model.generateContent(fullPrompt)
+    // Send message and get response
+    const result = await chat.sendMessage(prompt)
     const response = await result.response
     const text = response.text()
 
@@ -54,7 +74,12 @@ When users ask about specific stocks:
         model_used: 'gemini-pro',
         metadata: { 
           timestamp: new Date().toISOString(),
-          systemPrompt: systemPrompt
+          settings: {
+            temperature: 0.9,
+            topP: 1,
+            topK: 1,
+            maxOutputTokens: 2048,
+          }
         }
       })
 

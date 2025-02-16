@@ -1,20 +1,22 @@
+
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase environment variables. Please ensure you have connected your project to Supabase.');
-  // Provide dummy values to prevent the app from crashing during development
-  const dummyUrl = 'https://your-project.supabase.co';
-  const dummyKey = 'your-anon-key';
-  
-  // Create client with dummy values
-  export const supabase = createClient(dummyUrl, dummyKey);
-} else {
-  // Create client with actual values
-  export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-}
+// Create a single supabase client instance
+const createSupabaseClient = () => {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('Missing Supabase environment variables. Please ensure you have connected your project to Supabase.');
+    // Provide dummy values to prevent the app from crashing during development
+    const dummyUrl = 'https://your-project.supabase.co';
+    const dummyKey = 'your-anon-key';
+    return createClient(dummyUrl, dummyKey);
+  }
+  return createClient(supabaseUrl, supabaseAnonKey);
+};
+
+export const supabase = createSupabaseClient();
 
 // Type definitions for our database tables
 export type StockPrice = {

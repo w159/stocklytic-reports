@@ -123,11 +123,11 @@ serve(async (req) => {
           - Net Income: ${JSON.stringify(companyFacts.facts['us-gaap']?.['NetIncomeLoss'], null, 2)}
           - Operating Income: ${JSON.stringify(companyFacts.facts['us-gaap']?.['OperatingIncomeLoss'], null, 2)}
           ` : ''}
-          Please provide detailed analysis based on this official SEC data, focusing on the most recent reporting period and year-over-year comparisons when available. If asked about a specific year, compare it with previous years using the available data.`,
+          Please provide detailed analysis based on this official SEC data, focusing on the most recent reporting period and year-over-year comparisons when available. If asked about a specific year, compare it with previous years using the available data. You have access to real-time SEC filing data, so please use it to provide current information. Do not disclaim access to recent data if it's available in the filings.`,
         },
         {
           role: "model",
-          parts: "I understand I'm a financial analysis AI assistant with access to SEC EDGAR data. I'll provide detailed analysis based on official filings and financial facts, focusing on accurate reporting periods and data sources. I'll make year-over-year comparisons when possible and clearly indicate which reporting periods I'm analyzing.",
+          parts: "I understand I'm a financial analysis AI assistant with access to SEC EDGAR data. I'll provide detailed analysis based on official filings and financial facts, focusing on accurate reporting periods and data sources. I'll make year-over-year comparisons when possible and clearly indicate which reporting periods I'm analyzing. I'll use the most recent SEC filing data available to provide current information.",
         },
       ],
       generationConfig: {

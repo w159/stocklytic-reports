@@ -12,6 +12,7 @@ import NewsAnalysis from '@/components/StockAnalysis/NewsAnalysis';
 import PortfolioManagement from '@/components/StockAnalysis/PortfolioManagement';
 import { getStockOverview, getTimeSeriesDaily } from '@/lib/api/stockAPI';
 import { toast } from '@/components/ui/use-toast';
+import AIChat from '@/components/StockAnalysis/AIChat';
 
 const Index = () => {
   const [symbol, setSymbol] = useState<string>('');
@@ -148,13 +149,14 @@ const Index = () => {
                 </div>
               ) : (
                 <Tabs defaultValue="overview" className="w-full">
-                  <TabsList className="grid w-full grid-cols-6">
+                  <TabsList className="grid w-full grid-cols-7">
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="price">Price Performance</TabsTrigger>
                     <TabsTrigger value="portfolio">Portfolio & Management</TabsTrigger>
                     <TabsTrigger value="metrics">Key Metrics</TabsTrigger>
                     <TabsTrigger value="technical">Technical Analysis</TabsTrigger>
                     <TabsTrigger value="news">News & Reviews</TabsTrigger>
+                    <TabsTrigger value="ai">AI Assistant</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="overview" className="mt-6">
@@ -188,8 +190,17 @@ const Index = () => {
                       {symbol && <NewsAnalysis symbol={symbol} />}
                     </div>
                   </TabsContent>
+
+                  <TabsContent value="ai" className="mt-6">
+                    <AIChat />
+                  </TabsContent>
                 </Tabs>
               )}
+            </div>
+          )}
+          {!symbol && (
+            <div className="mt-8">
+              <AIChat />
             </div>
           )}
         </div>

@@ -174,18 +174,24 @@ serve(async (req) => {
           Period End Date: ${sortedOperatingIncomeData[1]?.end || 'N/A'}
           ` : ''}
 
-          IMPORTANT: This data is from official SEC filings and represents the most recent filings available. 
-          Use this data to provide detailed analysis, focusing on the specific dates shown above.
+          IMPORTANT: You are accessing real-time SEC filing data. This data represents official filings available on SEC EDGAR. 
           
-          When analyzing, make sure to:
-          1. Reference the actual filing dates and reporting periods shown above
-          2. Compare the most recent period with the previous period using the exact dates provided
-          3. Do not make statements about time periods not covered by this data
-          4. If you see recent filings from 2024, you should analyze them as they are official SEC data`,
+          When analyzing:
+          1. Use the exact dates shown above for your analysis
+          2. Focus on the most recent filing period's data for current performance
+          3. Make year-over-year or sequential comparisons using the provided periods
+          4. Do not make disclaimers about data availability - if you see data for a specific period, use it
+          5. Analyze any data from any period that is shown in the filings above, including 2024 if present
+          
+          Key points for your analysis:
+          - The latest filing date and report date shown above represent the most current data available
+          - All financial metrics show their exact reporting period end dates
+          - This data comes directly from SEC EDGAR in real-time
+          - You can and should analyze any time periods shown in the data above`,
         },
         {
           role: "model",
-          parts: "I understand that I should analyze the company using the exact dates and periods shown in the SEC filing data above. I will provide analysis based on the most recent filing periods and make comparisons using the specific dates provided in the data. I will not make assumptions about time periods not covered by this data.",
+          parts: "I understand I should analyze the official SEC filing data shown above, using the exact dates and periods provided. I will provide analysis based on the most recent filings and compare with previous periods using the actual dates shown. I will analyze any data from any period that appears in the filings, including 2024 data if present in the SEC records.",
         },
       ],
       generationConfig: {

@@ -36,7 +36,9 @@ async function getCompanyFilings(cik: string) {
         'User-Agent': 'StockAnalysisApp stock-analysis@example.com'
       }
     });
-    return await response.json();
+    const data = await response.json();
+    console.log('Filing data:', JSON.stringify(data, null, 2));
+    return data;
   } catch (error) {
     console.error('Error fetching company filings:', error);
     return null;
@@ -50,7 +52,9 @@ async function getCompanyFacts(cik: string) {
         'User-Agent': 'StockAnalysisApp stock-analysis@example.com'
       }
     });
-    return await response.json();
+    const data = await response.json();
+    console.log('Facts data:', JSON.stringify(data, null, 2));
+    return data;
   } catch (error) {
     console.error('Error fetching company facts:', error);
     return null;
@@ -72,7 +76,9 @@ serve(async (req) => {
     
     if (symbolMatch) {
       const symbol = symbolMatch[0];
+      console.log('Extracted symbol:', symbol);
       const cik = await getCompanyCIK(symbol);
+      console.log('Found CIK:', cik);
       
       if (cik) {
         companyData = await getCompanyFilings(cik);
@@ -106,17 +112,22 @@ serve(async (req) => {
           parts: `You are a financial analysis AI assistant with access to SEC EDGAR data. 
           When analyzing companies, use the following data if available:
           ${companyData ? `
-          Recent SEC Filings: ${JSON.stringify(companyData.filings.recent)}
+          Recent SEC Filings: ${JSON.stringify(companyData.filings.recent, null, 2)}
           Company Name: ${companyData.name}
+          Filing Period: ${companyData.filings.recent[0]?.reportDate || 'N/A'}
+          Form Type: ${companyData.filings.recent[0]?.form || 'N/A'}
           ` : ''}
           ${companyFacts ? `
-          Financial Facts: ${JSON.stringify(companyFacts.facts['us-gaap'])}
+          Key Financial Facts from SEC Filings:
+          - Revenue: ${JSON.stringify(companyFacts.facts['us-gaap']?.['Revenues'] || companyFacts.facts['us-gaap']?.['Revenue'], null, 2)}
+          - Net Income: ${JSON.stringify(companyFacts.facts['us-gaap']?.['NetIncomeLoss'], null, 2)}
+          - Operating Income: ${JSON.stringify(companyFacts.facts['us-gaap']?.['OperatingIncomeLoss'], null, 2)}
           ` : ''}
-          Please provide detailed analysis based on this official SEC data.`,
+          Please provide detailed analysis based on this official SEC data, focusing on the most recent reporting period and year-over-year comparisons when available. If asked about a specific year, compare it with previous years using the available data.`,
         },
         {
           role: "model",
-          parts: "I understand I'm a financial analysis AI assistant with access to SEC EDGAR data. I'll provide detailed analysis based on official filings and financial facts, focusing on accurate reporting periods and data sources.",
+          parts: "I understand I'm a financial analysis AI assistant with access to SEC EDGAR data. I'll provide detailed analysis based on official filings and financial facts, focusing on accurate reporting periods and data sources. I'll make year-over-year comparisons when possible and clearly indicate which reporting periods I'm analyzing.",
         },
       ],
       generationConfig: {

@@ -41,7 +41,7 @@ const Index = () => {
                 </TabsList>
 
                 <TabsContent value="overview" className="mt-6">
-                  <CompanyOverview data={{} as any} symbol={symbol} />
+                  <CompanyOverview symbol={symbol} />
                 </TabsContent>
 
                 <TabsContent value="portfolio" className="mt-6">

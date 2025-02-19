@@ -1,3 +1,4 @@
+
 export interface StockOverview {
   Symbol: string;
   Name: string;
@@ -9,6 +10,14 @@ export interface StockOverview {
   DividendYield: string;
   EPS: string;
   Beta: string;
+  SharesOutstanding: string;
+  SharesFloat: string;
+  QuarterlyRevenueGrowthYOY: string;
+  QuarterlyEarningsGrowthYOY: string;
+  ProfitMargin: string;
+  PriceToSalesRatio: string;
+  PriceToBookRatio: string;
+  EVToEBITDA: string;
 }
 
 export interface TimeSeriesData {

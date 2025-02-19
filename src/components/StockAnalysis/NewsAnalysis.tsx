@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Calendar, NewspaperIcon, TrendingUp, ExternalLink } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { getNewsData, type NewsItem } from '@/lib/api/stockAPI';
+import type { NewsItem } from '@/lib/api/stockAPI';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
@@ -25,7 +25,10 @@ const NewsAnalysis = ({ symbol }: NewsAnalysisProps) => {
 
   const { data: news, isLoading, error } = useQuery({
     queryKey: ['news', symbol],
-    queryFn: () => getNewsData(symbol),
+    queryFn: async () => {
+      // Placeholder for actual news data fetching
+      return [] as NewsItem[];
+    },
     enabled: !!symbol,
   });
 

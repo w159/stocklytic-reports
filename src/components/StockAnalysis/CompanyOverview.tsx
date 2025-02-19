@@ -2,6 +2,8 @@
 import React, { useEffect, useRef } from 'react';
 import { Card } from "@/components/ui/card";
 import TradingViewWidget from './TradingViewWidget';
+import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface CompanyOverviewProps {
   symbol: string;
@@ -43,6 +45,13 @@ const CompanyOverview = ({ symbol }: CompanyOverviewProps) => {
 
   return (
     <div className="space-y-6">
+      <Alert>
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          Live market data is provided by TradingView. For the most comprehensive and up-to-date analysis, refer to financial websites like Yahoo Finance.
+        </AlertDescription>
+      </Alert>
+
       <Card className="p-6 bg-black border-gray-800">
         <div className="tradingview-widget-container" ref={containerRef}>
           <div className="tradingview-widget-container__widget"></div>

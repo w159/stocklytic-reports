@@ -1,4 +1,9 @@
 
+export interface TickerSentiment {
+  ticker: string;
+  ticker_sentiment_score: string;
+}
+
 export interface StockOverview {
   Symbol: string;
   Name: string;
@@ -36,4 +41,5 @@ export interface NewsItem {
   authors: string[];
   summary: string;
   source: string;
+  ticker_sentiment?: TickerSentiment[]; // Make it optional since not all news items might have sentiment
 }

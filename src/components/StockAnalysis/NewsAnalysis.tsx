@@ -147,7 +147,7 @@ const NewsAnalysis = ({ symbol }: NewsAnalysisProps) => {
             </div>
             <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
             <p className="text-gray-600 text-sm mb-4">{item.summary}</p>
-            {item.ticker_sentiment && (
+            {item.ticker_sentiment && item.ticker_sentiment.length > 0 && (
               <div className="mb-4 flex flex-wrap gap-2">
                 {item.ticker_sentiment.map((sentiment, idx) => (
                   <Badge 

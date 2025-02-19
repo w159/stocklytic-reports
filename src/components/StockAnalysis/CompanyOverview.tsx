@@ -1,21 +1,13 @@
 
 import React, { useEffect, useRef } from 'react';
 import { Card } from "@/components/ui/card";
-import { StockOverview } from '@/lib/api/stockAPI';
 import TradingViewWidget from './TradingViewWidget';
 
-declare global {
-  interface Window {
-    TradingView: any;
-  }
-}
-
 interface CompanyOverviewProps {
-  data: StockOverview;
   symbol: string;
 }
 
-const CompanyOverview = ({ data, symbol }: CompanyOverviewProps) => {
+const CompanyOverview = ({ symbol }: CompanyOverviewProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -27,7 +19,7 @@ const CompanyOverview = ({ data, symbol }: CompanyOverviewProps) => {
     script.async = true;
     script.innerHTML = JSON.stringify({
       width: "100%",
-      height: "100%",
+      height: "400px",
       isTransparent: false,
       colorTheme: "dark",
       symbol: `${symbol}`,
@@ -52,7 +44,7 @@ const CompanyOverview = ({ data, symbol }: CompanyOverviewProps) => {
   return (
     <div className="space-y-6">
       <Card className="p-6 bg-black border-gray-800">
-        <div className="tradingview-widget-container" ref={containerRef} style={{ minHeight: '400px' }}>
+        <div className="tradingview-widget-container" ref={containerRef}>
           <div className="tradingview-widget-container__widget"></div>
           <div className="tradingview-widget-copyright">
             <a href="https://www.tradingview.com/" rel="noopener nofollow" target="_blank">
